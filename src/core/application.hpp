@@ -2,6 +2,7 @@
 #pragma once
 
 #include "core/core.hpp"
+#include "core/window.hpp"
 
 namespace luster
 {
@@ -20,7 +21,7 @@ namespace luster
 
 		struct VulkanState;
 		VulkanState* m_vk = nullptr;
-		SDL_Window* window_ = nullptr;
+		Window* window_ = nullptr;
 
 		// Vulkan initialization helper methods
 		void createInstance(SDL_Window* window, VulkanState& vk);

@@ -743,19 +743,14 @@ namespace luster
 			throw std::runtime_error("SDL_Init failed");
 		}
 
-        constexpr int width = 1280;
-        constexpr int height = 720;
-		window_ = SDL_CreateWindow("Luster (Vulkan)", width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-		if (!window_)
-		{
-			log_sdl_error("SDL_CreateWindow failed");
-			throw std::runtime_error("SDL_CreateWindow failed");
-		}
+		constexpr int width = 1280;
+		constexpr int height = 720;
+		window_ = new Window("Luster (Vulkan)", width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 
 		m_vk = new VulkanState();
 
 		try {
-			createInstance(window_, *m_vk);
+			createInstance(window_->sdl(), *m_vk);
 			spdlog::info("Vulkan instance created");
 
 			pickDevice(*m_vk);
@@ -764,7 +759,7 @@ namespace luster
 			createDevice(*m_vk);
 			spdlog::info("Logical device created");
 
-			createSwapchainAndViews(window_, *m_vk);
+			createSwapchainAndViews(window_->sdl(), *m_vk);
 			spdlog::info("Swapchain created: {} images, {}x{}, format {}", (int)m_vk->swapImageViews.size(),
 						 m_vk->swapExtent.width, m_vk->swapExtent.height, (int)m_vk->swapFormat);
 
@@ -783,28 +778,12 @@ namespace luster
 		bool running = true;
 		while (running)
 		{
-			SDL_Event e;
-			while (SDL_PollEvent(&e))
-			{
-				switch (e.type)
-				{
-				case SDL_EVENT_QUIT:
-				case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-					running = false;
-					break;
-				case SDL_EVENT_WINDOW_RESIZED:
-				case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-					m_vk->framebufferResized = true;
-					break;
-				default:
-					break;
-				}
-			}
+			running = window_->pollEvents(m_vk->framebufferResized);
 
 			if (m_vk->framebufferResized) {
 				m_vk->framebufferResized = false;
 				try {
-					recreateSwapchain(window_, *m_vk);
+					recreateSwapchain(window_->sdl(), *m_vk);
 				} catch (const std::exception& ex) {
 					spdlog::error("recreateSwapchain failed: {}", ex.what());
 					running = false;
@@ -873,11 +852,8 @@ namespace luster
 	{
 		if (!m_vk)
 		{
-			if (window_)
-			{
-				SDL_DestroyWindow(window_);
-				window_ = nullptr;
-			}
+			delete window_;
+			window_ = nullptr;
 			SDL_Quit();
 			return;
 		}
@@ -909,11 +885,8 @@ namespace luster
 		delete m_vk;
 		m_vk = nullptr;
 
-		if (window_)
-		{
-			SDL_DestroyWindow(window_);
-			window_ = nullptr;
-		}
+		delete window_;
+		window_ = nullptr;
 		SDL_Quit();
 
 		spdlog::info("Luster sandbox exiting.");
