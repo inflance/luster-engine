@@ -4,36 +4,24 @@
 #include "core/core.hpp"
 #include "core/window.hpp"
 
-namespace luster
-{
-	class Application
-	{
-	public:
-		Application();
-		~Application();
+namespace luster {
 
-		void run();
+class Renderer;
 
-	private:
-		void init();
-		void mainLoop();
-		void cleanup();
+class Application {
+public:
+  Application();
+  ~Application();
 
-		struct VulkanState;
-		VulkanState* m_vk = nullptr;
-		Window* window_ = nullptr;
+  void run();
 
-		// Vulkan initialization helper methods
-		void createInstance(SDL_Window* window, VulkanState& vk);
-		void pickDevice(VulkanState& vk);
-		void createDevice(VulkanState& vk);
-		void createSwapchainAndViews(SDL_Window* window, VulkanState& vk);
-		void createRenderPass(VulkanState& vk);
-		void createPipeline(VulkanState& vk);
-		void createFramebuffers(VulkanState& vk);
-		void createCommandsAndSync(VulkanState& vk);
-		void cleanupSwapchain(VulkanState& vk);
-		void recreateSwapchain(SDL_Window* window, VulkanState& vk);
-		void recordAndSubmitFrame(VulkanState& vk, uint32_t imageIndex);
-	};
+private:
+  void init();
+  void mainLoop();
+  void cleanup();
+
+  Renderer *renderer_ = nullptr;
+  Window *window_ = nullptr;
+};
+
 } // namespace luster
