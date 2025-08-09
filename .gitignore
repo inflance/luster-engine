@@ -1,0 +1,100 @@
+# Build outputs
+out/
+build/
+build-*/
+cmake-build-*/
+bin/
+lib/
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+Testing/
+CTestTestfile.cmake
+CMakeUserPresets.json
+
+# Visual Studio/MSBuild
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vcproj
+*.opensdf
+*.sdf
+*.tlog
+*.lastbuildstate
+
+# Compiled objects
+*.obj
+*.iobj
+*.pch
+*.ipch
+*.pdb
+*.idb
+*.ilk
+*.exp
+*.lib
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs and cache
+*.log
+*.cache
+.cache/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python venv (if any)
+venv/
+.venv/
+
+# vcpkg artifacts
+vcpkg_installed/
+vcpkg/installed/
+vcpkg/buildtrees/
+vcpkg/packages/
+vcpkg/downloads/
+
+# npm/yarn (just in case)
+node_modules/
+
+# coverage/artifacts
+coverage/
+*.gcda
+*.gcno
+*.gcov
+
+# temporary
+*.tmp
+*.temp
+
+# clangd cache
+.clangd/
+.clangd-cache/
+
+# editor backups
+*~
+*.swp
+*.swo
+
+# VSCode CMake Tools state
+.cmake/
+
+# Crash dumps
+*.dmp
+
+# Mac bundle
+*.app

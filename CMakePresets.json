@@ -1,0 +1,106 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2022",
+      "displayName": "VS2022 x64 (no vcpkg)",
+      "description": "Visual Studio 2022, x64, third-party via git submodules",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64"
+      },
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "USE_VCPKG": "OFF"
+      }
+    },
+    {
+      "name": "vs2022-vcpkg",
+      "displayName": "VS2022 x64 (with vcpkg toolchain)",
+      "description": "Visual Studio 2022, x64, use vcpkg toolchain",
+      "inherits": "vs2022",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "USE_VCPKG": "ON"
+      }
+    },
+    {
+      "name": "ninja-multi",
+      "displayName": "Ninja Multi-Config (no vcpkg)",
+      "description": "Ninja Multi-Config, x64, third-party via git submodules",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "USE_VCPKG": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "ninja-multi-vcpkg",
+      "displayName": "Ninja Multi-Config (with vcpkg toolchain)",
+      "description": "Ninja Multi-Config, x64, use vcpkg toolchain",
+      "inherits": "ninja-multi",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "USE_VCPKG": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "vs2022-Debug",
+      "configurePreset": "vs2022",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vs2022-Release",
+      "configurePreset": "vs2022",
+      "configuration": "Release"
+    },
+    {
+      "name": "vs2022-vcpkg-Debug",
+      "configurePreset": "vs2022-vcpkg",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vs2022-vcpkg-Release",
+      "configurePreset": "vs2022-vcpkg",
+      "configuration": "Release"
+    },
+    {
+      "name": "ninja-Debug",
+      "configurePreset": "ninja-multi",
+      "configuration": "Debug"
+    },
+    {
+      "name": "ninja-Release",
+      "configurePreset": "ninja-multi",
+      "configuration": "Release"
+    },
+    {
+      "name": "ninja-vcpkg-Debug",
+      "configurePreset": "ninja-multi-vcpkg",
+      "configuration": "Debug"
+    },
+    {
+      "name": "ninja-vcpkg-Release",
+      "configurePreset": "ninja-multi-vcpkg",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "vs2022-Test",
+      "configurePreset": "vs2022",
+      "configuration": "Debug"
+    }
+  ]
+}
