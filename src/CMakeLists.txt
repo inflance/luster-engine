@@ -1,13 +1,18 @@
 # Engine / App targets
 add_executable(luster_sandbox
     main.cpp
-    
 )
+
+# Group sources in IDEs
+# Add core subdir; it will auto-collect its sources
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/core/CMakeLists.txt")
+  add_subdirectory(core)
+  target_link_libraries(luster_sandbox PRIVATE luster::core)
+endif()
 
 # Group sources in IDEs
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES
     main.cpp
-    
 )
 
 # Compile options
