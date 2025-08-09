@@ -47,5 +47,13 @@ else()
   message(STATUS "src/CMakeLists.txt not found; add sources to build the engine.")
 endif()
 
+# Tests (optional)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt")
+  add_subdirectory(tests)
+  message(STATUS "Tests enabled - use 'cmake --build . --target run_tests' to run")
+else()
+  message(STATUS "tests/CMakeLists.txt not found; tests will be unavailable.")
+endif()
+
 # Installation (optional, placeholder)
 include(GNUInstallDirs OPTIONAL)

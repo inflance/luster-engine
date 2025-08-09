@@ -1,0 +1,75 @@
+name: Comprehensive Testing
+
+on:
+  workflow_run:
+    workflows: ["Build and Test"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  runtime-test:
+    runs-on: windows-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@v1.2.0
+      with:
+        vulkan-query-version: latest
+        vulkan-components: Vulkan-Headers, Vulkan-Loader
+    
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: vs2022-Release
+        path: ./build
+    
+    - name: Run Runtime Tests
+      run: |
+        cd build
+        # 基本运行测试
+        ./luster_sandbox.exe --test-runtime --headless
+        # Vulkan 设备检测
+        ./luster_sandbox.exe --test-vulkan
+        # 内存泄漏检测
+        ./luster_sandbox.exe --test-memory
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          test-results.xml
+          *.log
+
+  compatibility-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, windows-2019]
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@v1.2.0
+      with:
+        vulkan-query-version: latest
+    
+    - name: Build with Ninja
+      run: |
+        cmake --preset ninja-multi
+        cmake --build --preset ninja-Release --parallel
+    
+    - name: Run Compatibility Tests
+      run: |
+        cd out/build/ninja-multi/bin/Release
+        ./luster_sandbox.exe --test-compatibility
