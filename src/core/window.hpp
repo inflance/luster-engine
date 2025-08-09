@@ -4,29 +4,27 @@
 #include "core/core.hpp"
 #include <string>
 
-namespace luster {
+namespace luster
+{
+	class Window
+	{
+	public:
+		Window(const char* title, int width, int height, Uint32 flags);
+		~Window();
 
-class Window {
-public:
-    Window(const char* title, int width, int height, Uint32 flags);
-    ~Window();
+		Window(const Window&) = delete;
+		Window& operator=(const Window&) = delete;
 
-    Window(const Window&) = delete;
-    Window& operator=(const Window&) = delete;
+		SDL_Window* sdl() const { return window_; }
 
-    SDL_Window* sdl() const { return m_window; }
+		// Convenience helpers
+		void getSize(int& width, int& height) const;
+		bool pollEvents(bool& framebufferResized);
 
-    // Convenience helpers
-    void getSize(int& width, int& height) const;
-    bool pollEvents(bool& framebufferResized);
+		// Utility: create Vulkan surface from this window
+		VkSurfaceKHR createVulkanSurface(VkInstance instance) const;
 
-    // Utility: create Vulkan surface from this window
-    VkSurfaceKHR createVulkanSurface(VkInstance instance) const;
-
-private:
-    SDL_Window* m_window = nullptr;
-};
-
+	private:
+		SDL_Window* window_ = nullptr;
+	};
 } // namespace luster
-
-
