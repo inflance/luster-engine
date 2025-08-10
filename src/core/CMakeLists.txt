@@ -27,6 +27,19 @@ else()
   target_compile_options(luster_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+# Runtime toggles via compile definitions
+# Profiling: default ON in Debug, OFF otherwise
+target_compile_definitions(luster_core PUBLIC
+  $<$<CONFIG:Debug>:LUSTER_ENABLE_PROFILING=1>
+  $<$<NOT:$<CONFIG:Debug>>:LUSTER_ENABLE_PROFILING=0>
+)
+
+# Log level: 2=info in Debug, 3=warn otherwise (0=trace,1=debug,2=info,3=warn,4=err,5=critical,6=off)
+target_compile_definitions(luster_core PUBLIC
+  $<$<CONFIG:Debug>:LUSTER_LOG_LEVEL=2>
+  $<$<NOT:$<CONFIG:Debug>>:LUSTER_LOG_LEVEL=3>
+)
+
 # Better grouping in IDEs like Visual Studio
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${CORE_SOURCES} ${CORE_HEADERS})
 

@@ -3,6 +3,7 @@
 #include "core/gfx/render_pass.hpp"
 #include "core/gfx/command_context.hpp"
 #include "core/gfx/swapchain.hpp"
+#include "core/utils/profiler.hpp"
 #include <stdexcept>
 #include <functional>
 
@@ -31,6 +32,7 @@ namespace luster::gfx
     {
         for (auto fb : framebuffers_) if (fb) vkDestroyFramebuffer(device.logical(), fb, nullptr);
         framebuffers_.clear();
+        
     }
 
     Framebuffers::FrameResult Framebuffers::drawFrame(SDL_Window* window,
@@ -41,6 +43,7 @@ namespace luster::gfx
                                                       const std::function<void(VkCommandBuffer, uint32_t)>& recordCallback)
     {
         (void)window; (void)rp; // 当前实现不直接使用，保留签名以便未来扩展
+        PROFILE_SCOPE("frame");
         ctx.waitFence(device, UINT64_C(1'000'000'000));
         ctx.resetFence(device);
 
@@ -69,7 +72,10 @@ namespace luster::gfx
         r = vkQueuePresentKHR(device.presentQueue(), &pi);
         if (r == VK_ERROR_OUT_OF_DATE_KHR || r == VK_SUBOPTIMAL_KHR)
             return FrameResult::NeedRecreate;
-        return r == VK_SUCCESS ? FrameResult::Ok : FrameResult::Error;
+        if (r != VK_SUCCESS)
+            return FrameResult::Error;
+
+        return FrameResult::Ok;
     }
 }
 

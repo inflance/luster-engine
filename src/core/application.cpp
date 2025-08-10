@@ -15,7 +15,7 @@ namespace luster
 
     void Application::init()
     {
-        spdlog::set_pattern("[%H:%M:%S.%e] [%^%l%$] %v");
+        luster::Log::init();
         spdlog::info("Luster sandbox starting (SDL + Vulkan triangle)...");
 
 #if defined(_WIN32)

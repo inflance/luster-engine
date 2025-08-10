@@ -33,6 +33,7 @@ namespace luster::gfx
 		uint32_t presentQueueFamily() const { return presentQueueFamily_; }
 		VkQueue gfxQueue() const { return gfxQueue_; }
 		VkQueue presentQueue() const { return presentQueue_; }
+		float timestampPeriod() const { return timestampPeriod_; }
 
 	private:
 		void createInstance(SDL_Window* window, const InitParams& params);
@@ -52,5 +53,6 @@ namespace luster::gfx
 		VkQueue presentQueue_ = VK_NULL_HANDLE;
 
 		VkDebugUtilsMessengerEXT debugMessenger_ = VK_NULL_HANDLE;
+		float timestampPeriod_ = 0.0f;
 	};
 }

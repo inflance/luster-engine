@@ -4,6 +4,7 @@
 #include "renderer.hpp"
 #include "core/core.hpp"
 #include "core/window.hpp"
+#include "core/utils/log.hpp"
 
 namespace luster
 {

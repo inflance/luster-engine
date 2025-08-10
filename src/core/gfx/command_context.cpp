@@ -3,6 +3,7 @@
 #include "core/gfx/render_pass.hpp"
 #include "core/gfx/pipeline.hpp"
 #include <stdexcept>
+#include "core/utils/profiler.hpp"
 
 namespace luster::gfx
 {
@@ -17,6 +18,7 @@ namespace luster::gfx
 
     void CommandContext::create(const Device& device, uint32_t queueFamilyIndex)
     {
+        device_ = device.logical();
         VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
         pci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         pci.queueFamilyIndex = queueFamilyIndex;
@@ -52,6 +54,7 @@ namespace luster::gfx
         if (semImageAvailable_) vkDestroySemaphore(device.logical(), semImageAvailable_, nullptr);
         if (cmdBuf_) vkFreeCommandBuffers(device.logical(), cmdPool_, 1, &cmdBuf_);
         if (cmdPool_) vkDestroyCommandPool(device.logical(), cmdPool_, nullptr);
+        device_ = VK_NULL_HANDLE;
         cmdPool_ = VK_NULL_HANDLE; cmdBuf_ = VK_NULL_HANDLE;
         semImageAvailable_ = VK_NULL_HANDLE; semRenderFinished_ = VK_NULL_HANDLE; inFlight_ = VK_NULL_HANDLE;
     }
@@ -69,6 +72,7 @@ namespace luster::gfx
 
     VkCommandBuffer CommandContext::begin()
     {
+        PROFILE_SCOPE("cmd_begin");
         vkResetCommandBuffer(cmdBuf_, 0);
         VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         VkResult r = vkBeginCommandBuffer(cmdBuf_, &bi);
@@ -78,6 +82,7 @@ namespace luster::gfx
 
     void CommandContext::end()
     {
+        PROFILE_SCOPE("cmd_end");
         VkResult r = vkEndCommandBuffer(cmdBuf_);
         if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkEndCommandBuffer failed: ") + vk_err(r));
     }
@@ -109,6 +114,25 @@ namespace luster::gfx
             vkCmdEndRenderPass(cmdBuf_);
             renderPassOpen_ = false;
         }
+    }
+
+    void CommandContext::beginLabel(const char* name, float r, float g, float b, float a)
+    {
+        if (!device_) return;
+        auto pfn = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device_, "vkCmdBeginDebugUtilsLabelEXT"));
+        if (!pfn) return;
+        VkDebugUtilsLabelEXT label{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
+        label.pLabelName = name;
+        label.color[0] = r; label.color[1] = g; label.color[2] = b; label.color[3] = a;
+        pfn(cmdBuf_, &label);
+    }
+
+    void CommandContext::endLabel()
+    {
+        if (!device_) return;
+        auto pfn = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device_, "vkCmdEndDebugUtilsLabelEXT"));
+        if (!pfn) return;
+        pfn(cmdBuf_);
     }
 
     void CommandContext::bindPipeline(const Pipeline& pipeline)

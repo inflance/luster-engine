@@ -2,6 +2,7 @@
 
 #include "core/core.hpp"
 #include "core/gfx/device.hpp"
+#include "core/gfx/gpu_profiler.hpp"
 #include <vector>
 
 namespace luster
@@ -38,6 +39,7 @@ namespace luster
 		std::unique_ptr<gfx::Framebuffers> framebuffers_;
 
 		std::unique_ptr<gfx::CommandContext> context_;
+        gfx::GpuProfiler gpuProfiler_;
 
 		void createInstance(SDL_Window* window, const gfx::Device::InitParams& params);
 		void createSwapchainAndViews(SDL_Window* window);

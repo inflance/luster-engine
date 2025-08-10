@@ -301,6 +301,11 @@ namespace luster::gfx
 
 		vkGetDeviceQueue(device_, gfxQueueFamily_, 0, &gfxQueue_);
 		vkGetDeviceQueue(device_, presentQueueFamily_, 0, &presentQueue_);
+
+        // Cache timestampPeriod (ns per tick)
+        VkPhysicalDeviceProperties props{};
+        vkGetPhysicalDeviceProperties(gpu_, &props);
+        timestampPeriod_ = props.limits.timestampPeriod; // in nanoseconds per tick
 	}
 
 	void Device::destroyDebugMessenger()

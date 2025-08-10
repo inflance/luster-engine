@@ -35,6 +35,7 @@ namespace luster
 			createPipeline();
 			createFramebuffers();
 			createCommandsAndSync();
+            gpuProfiler_.init(*device_);
 		}
 		catch (const std::exception& ex)
 		{
@@ -45,22 +46,29 @@ namespace luster
 
 	bool Renderer::drawFrame(SDL_Window* window)
 	{
-		auto result = framebuffers_->drawFrame(
+        auto result = framebuffers_->drawFrame(
 			window, *device_, *renderPass_, *context_, *swapchain_,
 			[&](VkCommandBuffer /*cb*/, uint32_t imageIndex)
 			{
-				context_->beginRender(*renderPass_, framebuffers_->handles()[imageIndex], swapchain_->extent(),
+                gpuProfiler_.beginLabel(*context_, "TrianglePass");
+                gpuProfiler_.beginFrame(*context_);
+                context_->beginRender(*renderPass_, framebuffers_->handles()[imageIndex], swapchain_->extent(),
 				                      0.05f, 0.06f, 0.09f, 1.0f);
 				context_->bindPipeline(*pipeline_);
 				context_->draw(3);
 				context_->endRender();
-			}
+                gpuProfiler_.endFrame(*context_);
+                gpuProfiler_.endLabel(*context_);
+            }
 		);
 
 		if (result == gfx::Framebuffers::FrameResult::NeedRecreate)
 		{
 			recreateSwapchain(window);
-			return true;
+        double ms = 0.0;
+        if (gpuProfiler_.getLastTimingMs(*device_, ms))
+            spdlog::info("GPU frame {:.3f} ms", ms);
+        return true;
 		}
 		if (result == gfx::Framebuffers::FrameResult::Error)
 		{
@@ -91,6 +99,9 @@ namespace luster
 			return;
 
 		device_->waitIdle();
+
+        // Destroy GPU profiler resources before device is destroyed
+        gpuProfiler_.cleanup(*device_);
 
 		if (context_)
 		{
