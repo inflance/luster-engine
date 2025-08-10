@@ -19,6 +19,7 @@ namespace luster
 		class Pipeline;
 		class CommandContext;
 		class Framebuffers;
+      class Image;
 	}
 
 	class Renderer
@@ -40,6 +41,7 @@ namespace luster
 		std::unique_ptr<gfx::RenderPass> renderPass_;
 		std::unique_ptr<gfx::Pipeline> pipeline_;
 		std::unique_ptr<gfx::Framebuffers> framebuffers_;
+          std::unique_ptr<gfx::Image> depthImage_;
 
 		std::unique_ptr<gfx::CommandContext> context_;
         gfx::GpuProfiler gpuProfiler_;

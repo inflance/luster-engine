@@ -6,6 +6,7 @@
 #include "core/gfx/pipeline.hpp"
 #include "core/gfx/command_context.hpp"
 #include "core/gfx/framebuffers.hpp"
+#include "core/gfx/image.hpp"
 #include <cstdint>
 #include <stdexcept>
 
@@ -158,7 +159,9 @@ namespace luster
 	void Renderer::createRenderPass()
 	{
 		renderPass_ = std::make_unique<gfx::RenderPass>();
-		renderPass_->create(*device_, swapchain_->imageFormat());
+		// Choose a common depth format (fallback chain can be added later)
+		VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+		renderPass_->create(*device_, swapchain_->imageFormat(), depthFormat);
 	}
 
 	void Renderer::createPipeline()
@@ -173,8 +176,20 @@ namespace luster
 
 	void Renderer::createFramebuffers()
 	{
-		if (!framebuffers_) framebuffers_ = std::make_unique<gfx::Framebuffers>();
-		framebuffers_->create(*device_, *renderPass_, swapchain_->extent(), swapchain_->imageViews());
+        if (!framebuffers_) framebuffers_ = std::make_unique<gfx::Framebuffers>();
+        if (!depthImage_) depthImage_ = std::make_unique<gfx::Image>();
+		gfx::ImageCreateInfo di{};
+		di.width = swapchain_->extent().width;
+		di.height = swapchain_->extent().height;
+		di.format = VK_FORMAT_D32_SFLOAT;
+		di.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		di.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		di.tiling = VK_IMAGE_TILING_OPTIMAL;
+		di.aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthImage_->cleanup(*device_);
+        depthImage_->create(*device_, di);
+
+        framebuffers_->create(*device_, *renderPass_, swapchain_->extent(), swapchain_->imageViews(), depthImage_->view());
 	}
 
 	void Renderer::createCommandsAndSync()
@@ -202,5 +217,10 @@ namespace luster
 			renderPass_->cleanup(*device_);
 			renderPass_.reset();
 		}
+        if (depthImage_)
+        {
+            depthImage_->cleanup(*device_);
+            depthImage_.reset();
+        }
 	}
 } // namespace luster

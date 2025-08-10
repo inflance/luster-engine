@@ -51,6 +51,12 @@ namespace luster::gfx
         VkPipelineMultisampleStateCreateInfo ms{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
         ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
+        VkPipelineDepthStencilStateCreateInfo ds{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
+        ds.depthTestEnable = info.enableDepthTest;
+        ds.depthWriteEnable = info.enableDepthWrite;
+        ds.depthCompareOp = VK_COMPARE_OP_LESS;
+        ds.stencilTestEnable = VK_FALSE;
+
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                               VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -69,7 +75,7 @@ namespace luster::gfx
         pci.pViewportState = &vpState;
         pci.pRasterizationState = &rs;
         pci.pMultisampleState = &ms;
-        pci.pDepthStencilState = nullptr;
+        pci.pDepthStencilState = &ds;
         pci.pColorBlendState = &cb;
         pci.pDynamicState = nullptr;
         pci.layout = pipelineLayout_;

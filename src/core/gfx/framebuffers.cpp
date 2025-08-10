@@ -9,16 +9,20 @@
 
 namespace luster::gfx
 {
-    void Framebuffers::create(const Device& device, const RenderPass& rp, VkExtent2D extent, const std::vector<VkImageView>& imageViews)
+    void Framebuffers::create(const Device& device,
+                              const RenderPass& rp,
+                              VkExtent2D extent,
+                              const std::vector<VkImageView>& colorImageViews,
+                              VkImageView depthImageView)
     {
         cleanup(device);
-        framebuffers_.resize(imageViews.size());
-        for (size_t i = 0; i < imageViews.size(); ++i)
+        framebuffers_.resize(colorImageViews.size());
+        for (size_t i = 0; i < colorImageViews.size(); ++i)
         {
-            VkImageView attachments[] = {imageViews[i]};
+            VkImageView attachments[] = {colorImageViews[i], depthImageView};
             VkFramebufferCreateInfo fci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
             fci.renderPass = rp.handle();
-            fci.attachmentCount = 1;
+            fci.attachmentCount = 2;
             fci.pAttachments = attachments;
             fci.width = extent.width;
             fci.height = extent.height;

@@ -89,13 +89,18 @@ namespace luster::gfx
 
     void CommandContext::beginRender(const RenderPass& rp, VkFramebuffer framebuffer, VkExtent2D extent, const VkClearValue& clear)
     {
+        VkClearValue clears[2]{};
+        clears[0] = clear; // color
+        clears[1].depthStencil.depth = 1.0f; // default depth clear
+        clears[1].depthStencil.stencil = 0;
+
         VkRenderPassBeginInfo rpbi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
         rpbi.renderPass = rp.handle();
         rpbi.framebuffer = framebuffer;
         rpbi.renderArea.offset = {0, 0};
         rpbi.renderArea.extent = extent;
-        rpbi.clearValueCount = 1;
-        rpbi.pClearValues = &clear;
+        rpbi.clearValueCount = 2;
+        rpbi.pClearValues = clears;
         vkCmdBeginRenderPass(cmdBuf_, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
         renderPassOpen_ = true;
     }

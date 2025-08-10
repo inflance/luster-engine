@@ -13,6 +13,8 @@ namespace luster::gfx
         std::string vsSpvPath;
         std::string fsSpvPath;
         VkExtent2D viewportExtent{};
+        VkBool32 enableDepthTest = VK_TRUE;
+        VkBool32 enableDepthWrite = VK_TRUE;
     };
 
     class Pipeline

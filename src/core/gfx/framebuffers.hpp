@@ -15,7 +15,11 @@ namespace luster::gfx
         Framebuffers() = default;
         ~Framebuffers() = default;
 
-        void create(const Device& device, const RenderPass& rp, VkExtent2D extent, const std::vector<VkImageView>& imageViews);
+        void create(const Device& device,
+                    const RenderPass& rp,
+                    VkExtent2D extent,
+                    const std::vector<VkImageView>& colorImageViews,
+                    VkImageView depthImageView);
         enum class FrameResult { Ok, NeedRecreate, Error };
         // acquire image + record + submit + present 的便捷接口：传入回调以录制绘制命令
         // recordCallback(VkCommandBuffer, uint32_t imageIndex)
@@ -31,6 +35,7 @@ namespace luster::gfx
 
     private:
         std::vector<VkFramebuffer> framebuffers_{};
+        VkImageView depthView_ = VK_NULL_HANDLE; // cached only for signature parity; not owned
     };
 }
 
