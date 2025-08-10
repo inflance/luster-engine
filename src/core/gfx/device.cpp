@@ -313,4 +313,56 @@ namespace luster::gfx
 		if (debugMessenger_) destroyDebugMessengerExt(instance_, debugMessenger_);
 		debugMessenger_ = VK_NULL_HANDLE;
 	}
+
+    VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
+    {
+        for (VkFormat format : candidates)
+        {
+            VkFormatProperties props{};
+            vkGetPhysicalDeviceFormatProperties(gpu_, format, &props);
+            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+                return format;
+            if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+                return format;
+        }
+        throw std::runtime_error("No supported format found");
+    }
+
+    VkFormat Device::findDepthFormat() const
+    {
+        const std::vector<VkFormat> candidates = {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        };
+        return findSupportedFormat(candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    }
+
+    void Device::submitImmediate(const std::function<void(VkCommandBuffer)>& recordCommands) const
+    {
+        VkCommandPool pool = VK_NULL_HANDLE;
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        VkFence fence = VK_NULL_HANDLE;
+        VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pci.queueFamilyIndex = gfxQueueFamily_;
+        pci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        if (vkCreateCommandPool(device_, &pci, nullptr, &pool) != VK_SUCCESS) throw std::runtime_error("create pool failed");
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = pool; ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; ai.commandBufferCount = 1;
+        if (vkAllocateCommandBuffers(device_, &ai, &cmd) != VK_SUCCESS) throw std::runtime_error("alloc cmd failed");
+        VkFenceCreateInfo fci{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        if (vkCreateFence(device_, &fci, nullptr, &fence) != VK_SUCCESS) throw std::runtime_error("create fence failed");
+        VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+        bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(cmd, &bi);
+        recordCommands(cmd);
+        vkEndCommandBuffer(cmd);
+        VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+        si.commandBufferCount = 1; si.pCommandBuffers = &cmd;
+        vkQueueSubmit(gfxQueue_, 1, &si, fence);
+        vkWaitForFences(device_, 1, &fence, VK_TRUE, UINT64_C(1'000'000'000));
+        vkDestroyFence(device_, fence, nullptr);
+        vkFreeCommandBuffers(device_, pool, 1, &cmd);
+        vkDestroyCommandPool(device_, pool, nullptr);
+    }
 }

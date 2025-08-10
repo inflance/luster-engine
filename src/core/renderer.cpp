@@ -8,6 +8,8 @@
 #include "core/gfx/framebuffers.hpp"
 #include "core/gfx/image.hpp"
 #include "core/gfx/buffer.hpp"
+#include "core/gfx/vertex_layout.hpp"
+#include "core/gfx/descriptor.hpp"
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -100,8 +102,10 @@ namespace luster
                 const VkDeviceSize ofs[] = { 0 };
                 if (vbs[0] != VK_NULL_HANDLE) context_->bindVertexBuffers(0, vbs, ofs, 1);
                 // bind descriptor set (UBO)
-                if (descriptorSet_) context_->bindDescriptorSets(pipeline_->layout(), 0, &descriptorSet_, 1);
-				context_->draw(3);
+                if (dset_) { VkDescriptorSet set = dset_->handle(); context_->bindDescriptorSets(pipeline_->layout(), 0, &set, 1); }
+                // bind index buffer & draw indexed
+                if (indexBuffer_) context_->bindIndexBuffer(indexBuffer_->handle(), 0, VK_INDEX_TYPE_UINT16);
+                context_->drawIndexed(3);
 				context_->endRender();
                 gpuProfiler_.endFrame(*context_);
                 gpuProfiler_.endLabel(*context_);
@@ -169,8 +173,8 @@ namespace luster
         cleanupSwapchain();
 
         // Destroy descriptors (pool and layout)
-        if (descriptorPool_) { vkDestroyDescriptorPool(device_->logical(), descriptorPool_, nullptr); descriptorPool_ = VK_NULL_HANDLE; }
-        if (descriptorSetLayout_) { vkDestroyDescriptorSetLayout(device_->logical(), descriptorSetLayout_, nullptr); descriptorSetLayout_ = VK_NULL_HANDLE; }
+        if (dsp_) { dsp_->cleanup(*device_); dsp_.reset(); }
+        if (dsl_) { dsl_->cleanup(*device_); dsl_.reset(); }
 
 		if (swapchain_)
 		{
@@ -180,6 +184,7 @@ namespace luster
 
         if (uniformBuffer_) { uniformBuffer_->cleanup(*device_); uniformBuffer_.reset(); }
         if (vertexBuffer_) { vertexBuffer_->cleanup(*device_); vertexBuffer_.reset(); }
+        if (indexBuffer_)   { indexBuffer_->cleanup(*device_);   indexBuffer_.reset(); }
 		if (device_)
 		{
 			device_->cleanup();
@@ -202,8 +207,8 @@ namespace luster
 	void Renderer::createRenderPass()
 	{
 		renderPass_ = std::make_unique<gfx::RenderPass>();
-		// Choose a common depth format (fallback chain can be added later)
-		VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+        // Choose a supported depth format
+        VkFormat depthFormat = device_->findDepthFormat();
 		renderPass_->create(*device_, swapchain_->imageFormat(), depthFormat);
 	}
 
@@ -226,7 +231,7 @@ namespace luster
 		gfx::ImageCreateInfo di{};
 		di.width = swapchain_->extent().width;
 		di.height = swapchain_->extent().height;
-		di.format = VK_FORMAT_D32_SFLOAT;
+        di.format = device_->findDepthFormat();
 		di.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		di.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 		di.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -257,6 +262,19 @@ namespace luster
         memcpy(data, verts, sizeof(verts));
         vertexBuffer_->unmap(*device_);
 
+        // index buffer (triangle)
+        if (!indexBuffer_) indexBuffer_ = std::make_unique<gfx::Buffer>();
+        const uint16_t indices[] = {0, 1, 2};
+        gfx::BufferCreateInfo ibi{};
+        ibi.size = sizeof(indices);
+        ibi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        ibi.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        indexBuffer_->cleanup(*device_);
+        indexBuffer_->create(*device_, ibi);
+        void* idata = indexBuffer_->map(*device_);
+        memcpy(idata, indices, sizeof(indices));
+        indexBuffer_->unmap(*device_);
+
         if (!uniformBuffer_) uniformBuffer_ = std::make_unique<gfx::Buffer>();
         gfx::BufferCreateInfo ubi{};
         ubi.size = sizeof(glm::mat4); // MVP
@@ -275,57 +293,46 @@ namespace luster
         pipeline_->cleanup(*device_);
 
         // If a descriptor pool exists, destroy it first (frees sets implicitly)
-        if (descriptorPool_) { vkDestroyDescriptorPool(device_->logical(), descriptorPool_, nullptr); descriptorPool_ = VK_NULL_HANDLE; }
+        if (dsp_) { dsp_->cleanup(*device_); }
 
         // Destroy old descriptor set layout, then recreate it
-        if (descriptorSetLayout_) { vkDestroyDescriptorSetLayout(device_->logical(), descriptorSetLayout_, nullptr); descriptorSetLayout_ = VK_NULL_HANDLE; }
         VkDescriptorSetLayoutBinding ubo{};
         ubo.binding = 0;
         ubo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         ubo.descriptorCount = 1;
         ubo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        VkDescriptorSetLayoutCreateInfo lci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        lci.bindingCount = 1; lci.pBindings = &ubo;
-        VkResult r = vkCreateDescriptorSetLayout(device_->logical(), &lci, nullptr, &descriptorSetLayout_);
-        if (r != VK_SUCCESS) throw std::runtime_error("vkCreateDescriptorSetLayout failed");
+        if (!dsl_) dsl_ = std::make_unique<gfx::DescriptorSetLayout>();
+        dsl_->cleanup(*device_);
+        dsl_->create(*device_, &ubo, 1);
         gfx::PipelineCreateInfo info{};
         info.vsSpvPath = "shaders/triangle.vert.spv";
         info.fsSpvPath = "shaders/triangle.frag.spv";
         info.viewportExtent = swapchain_->extent();
         info.enableDepthTest = config_.pipeline.enableDepthTest ? VK_TRUE : VK_FALSE;
         info.enableDepthWrite = config_.pipeline.enableDepthWrite ? VK_TRUE : VK_FALSE;
-        info.setLayouts = &descriptorSetLayout_;
+        VkDescriptorSetLayout layout = dsl_->handle();
+        info.setLayouts = &layout;
         info.setLayoutCount = 1;
-        // vertex input
-        static VkVertexInputBindingDescription bind{0, sizeof(float)*5, VK_VERTEX_INPUT_RATE_VERTEX};
-        static VkVertexInputAttributeDescription attrs[] = {
-            {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},                 // aPosition
-            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*2} // aColor
-        };
-        info.vertexBinding = &bind; info.vertexBindingCount = 1;
-        info.vertexAttributes = attrs; info.vertexAttributeCount = 2;
+        // vertex input via VertexLayout (recreate to avoid duplicated attributes)
+        vertexLayout_ = std::make_unique<gfx::VertexLayout>();
+        vertexLayout_->setBinding(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX);
+        vertexLayout_->addAttribute(0, 0, VK_FORMAT_R32G32_SFLOAT, 0);
+        vertexLayout_->addAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*2);
+        info.vertexBinding = vertexLayout_->binding();
+        info.vertexBindingCount = vertexLayout_->hasBinding() ? 1u : 0u;
+        info.vertexAttributes = vertexLayout_->attributesData();
+        info.vertexAttributeCount = vertexLayout_->attributeCount();
         pipeline_->create(*device_, *renderPass_, info);
 
         // Descriptor pool & set
+        if (!dsp_) dsp_ = std::make_unique<gfx::DescriptorPool>();
+        dsp_->cleanup(*device_);
         VkDescriptorPoolSize poolSize{}; poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; poolSize.descriptorCount = 1;
-        VkDescriptorPoolCreateInfo pci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        pci.maxSets = 1; pci.poolSizeCount = 1; pci.pPoolSizes = &poolSize;
-        r = vkCreateDescriptorPool(device_->logical(), &pci, nullptr, &descriptorPool_);
-        if (r != VK_SUCCESS) throw std::runtime_error("vkCreateDescriptorPool failed");
+        dsp_->create(*device_, &poolSize, 1, 1);
 
-        VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-        ai.descriptorPool = descriptorPool_; ai.descriptorSetCount = 1; ai.pSetLayouts = &descriptorSetLayout_;
-        r = vkAllocateDescriptorSets(device_->logical(), &ai, &descriptorSet_);
-        if (r != VK_SUCCESS) throw std::runtime_error("vkAllocateDescriptorSets failed");
-
-        VkDescriptorBufferInfo dbi{}; dbi.buffer = uniformBuffer_->handle(); dbi.offset = 0; dbi.range = uniformBuffer_->size();
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.dstSet = descriptorSet_;
-        write.dstBinding = 0;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &dbi;
-        vkUpdateDescriptorSets(device_->logical(), 1, &write, 0, nullptr);
+        if (!dset_) dset_ = std::make_unique<gfx::DescriptorSet>();
+        dset_->allocate(*device_, *dsp_, *dsl_);
+        dset_->updateUniformBuffer(*device_, 0, uniformBuffer_->handle(), uniformBuffer_->size());
     }
 
 	void Renderer::createCommandsAndSync()

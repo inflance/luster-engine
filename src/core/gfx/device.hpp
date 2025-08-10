@@ -2,6 +2,7 @@
 
 #include "core/core.hpp"
 #include <vector>
+#include <functional>
 
 namespace luster::gfx
 {
@@ -34,6 +35,11 @@ namespace luster::gfx
 		VkQueue gfxQueue() const { return gfxQueue_; }
 		VkQueue presentQueue() const { return presentQueue_; }
 		float timestampPeriod() const { return timestampPeriod_; }
+
+		// Helpers
+		VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+		VkFormat findDepthFormat() const; // depth-only preferred
+        void submitImmediate(const std::function<void(VkCommandBuffer)>& recordCommands) const;
 
 	private:
 		void createInstance(SDL_Window* window, const InitParams& params);

@@ -155,9 +155,19 @@ namespace luster::gfx
         vkCmdBindDescriptorSets(cmdBuf_, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, firstSet, count, sets, 0, nullptr);
     }
 
+    void CommandContext::bindIndexBuffer(VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
+    {
+        vkCmdBindIndexBuffer(cmdBuf_, buffer, offset, indexType);
+    }
+
     void CommandContext::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         vkCmdDraw(cmdBuf_, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void CommandContext::drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+    {
+        vkCmdDrawIndexed(cmdBuf_, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     void CommandContext::submit(VkQueue gfxQueue, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence) const

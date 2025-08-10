@@ -22,6 +22,10 @@ namespace luster
 		class Framebuffers;
       class Image;
       class Buffer;
+      class VertexLayout;
+      class DescriptorSetLayout;
+      class DescriptorPool;
+      class DescriptorSet;
 	}
 
 	class Renderer
@@ -53,10 +57,12 @@ namespace luster
 
         // Geometry & UBO
         std::unique_ptr<gfx::Buffer> vertexBuffer_;
+        std::unique_ptr<gfx::Buffer> indexBuffer_;
         std::unique_ptr<gfx::Buffer> uniformBuffer_;
-        VkDescriptorSetLayout descriptorSetLayout_ = VK_NULL_HANDLE;
-        VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
-        VkDescriptorSet descriptorSet_ = VK_NULL_HANDLE;
+        std::unique_ptr<gfx::VertexLayout> vertexLayout_;
+        std::unique_ptr<gfx::DescriptorSetLayout> dsl_;
+        std::unique_ptr<gfx::DescriptorPool> dsp_;
+        std::unique_ptr<gfx::DescriptorSet> dset_;
 
         // FPS tracking
         std::chrono::steady_clock::time_point fpsLastUpdate_{};

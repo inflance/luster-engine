@@ -2,6 +2,7 @@
 #include "core/gfx/buffer.hpp"
 #include "core/gfx/device.hpp"
 #include <stdexcept>
+#include <cstring>
 
 namespace luster::gfx
 {
@@ -61,6 +62,38 @@ namespace luster::gfx
     void Buffer::unmap(const Device& device)
     {
         vkUnmapMemory(device.logical(), memory_);
+    }
+
+    void Buffer::upload(const Device& device, const void* src, VkDeviceSize size)
+    {
+        if (size == 0 || !src) return;
+        // Try direct map
+        void* dst = nullptr;
+        if (vkMapMemory(device.logical(), memory_, 0, size_, 0, &dst) == VK_SUCCESS)
+        {
+            std::memcpy(dst, src, static_cast<size_t>(std::min(size_, size)));
+            vkUnmapMemory(device.logical(), memory_);
+            return;
+        }
+
+        // Fallback staging (DEVICE_LOCAL memory)
+        Buffer staging;
+        BufferCreateInfo ci{};
+        ci.size = size;
+        ci.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        ci.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        staging.create(device, ci);
+        void* mapped = staging.map(device);
+        std::memcpy(mapped, src, static_cast<size_t>(size));
+        staging.unmap(device);
+
+        // Ensure dst buffer has TRANSFER_DST usage
+        // Copy via immediate submit
+        device.submitImmediate([&](VkCommandBuffer cmd) {
+            VkBufferCopy region{}; region.size = size;
+            vkCmdCopyBuffer(cmd, staging.handle(), buffer_, 1, &region);
+        });
+        staging.cleanup(device);
     }
 }
 

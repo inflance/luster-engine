@@ -25,6 +25,9 @@ namespace luster::gfx
         void* map(const Device& device);
         void unmap(const Device& device);
 
+        // Convenience: upload data via staging if memory is DEVICE_LOCAL, else direct map
+        void upload(const Device& device, const void* data, VkDeviceSize size);
+
         VkBuffer handle() const { return buffer_; }
         VkDeviceSize size() const { return size_; }
 

@@ -36,7 +36,9 @@ namespace luster::gfx
         void bindPipeline(const Pipeline& pipeline);
         void bindVertexBuffers(uint32_t firstBinding, const VkBuffer* buffers, const VkDeviceSize* offsets, uint32_t count);
         void bindDescriptorSets(VkPipelineLayout layout, uint32_t firstSet, const VkDescriptorSet* sets, uint32_t count);
+        void bindIndexBuffer(VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType);
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
+        void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0, uint32_t firstInstance = 0);
 
         // Submit current command buffer with common triangle pipeline usage
         void submit(VkQueue gfxQueue, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence) const;

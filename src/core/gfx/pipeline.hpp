@@ -15,9 +15,9 @@ namespace luster::gfx
         VkExtent2D viewportExtent{};
         VkBool32 enableDepthTest = VK_TRUE;
         VkBool32 enableDepthWrite = VK_TRUE;
-        // 可选：顶点输入
+        // 顶点输入：支持最多 1 个 binding（当前需求）
         const VkVertexInputBindingDescription* vertexBinding = nullptr;
-        uint32_t vertexBindingCount = 0; // 目前仅支持 0 或 1
+        uint32_t vertexBindingCount = 0; // 0 or 1
         const VkVertexInputAttributeDescription* vertexAttributes = nullptr;
         uint32_t vertexAttributeCount = 0;
         // 可选：描述符布局（如 UBO）
