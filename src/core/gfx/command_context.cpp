@@ -1,0 +1,140 @@
+#include "core/gfx/command_context.hpp"
+#include "core/gfx/device.hpp"
+#include "core/gfx/render_pass.hpp"
+#include "core/gfx/pipeline.hpp"
+#include <stdexcept>
+
+namespace luster::gfx
+{
+    static const char* vk_err(VkResult r)
+    {
+        switch (r)
+        {
+        case VK_SUCCESS: return "VK_SUCCESS";
+        default: return "VK_ERROR";
+        }
+    }
+
+    void CommandContext::create(const Device& device, uint32_t queueFamilyIndex)
+    {
+        VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+        pci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        pci.queueFamilyIndex = queueFamilyIndex;
+        VkResult r = vkCreateCommandPool(device.logical(), &pci, nullptr, &cmdPool_);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateCommandPool failed: ") + vk_err(r));
+
+        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        ai.commandPool = cmdPool_;
+        ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        ai.commandBufferCount = 1;
+        r = vkAllocateCommandBuffers(device.logical(), &ai, &cmdBuf_);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkAllocateCommandBuffers failed: ") + vk_err(r));
+    }
+
+    void CommandContext::createSync(const Device& device)
+    {
+        VkSemaphoreCreateInfo sci{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkResult r = vkCreateSemaphore(device.logical(), &sci, nullptr, &semImageAvailable_);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateSemaphore failed: ") + vk_err(r));
+        r = vkCreateSemaphore(device.logical(), &sci, nullptr, &semRenderFinished_);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateSemaphore failed: ") + vk_err(r));
+
+        VkFenceCreateInfo fci{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        r = vkCreateFence(device.logical(), &fci, nullptr, &inFlight_);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateFence failed: ") + vk_err(r));
+    }
+
+    void CommandContext::cleanup(const Device& device)
+    {
+        if (inFlight_) vkDestroyFence(device.logical(), inFlight_, nullptr);
+        if (semRenderFinished_) vkDestroySemaphore(device.logical(), semRenderFinished_, nullptr);
+        if (semImageAvailable_) vkDestroySemaphore(device.logical(), semImageAvailable_, nullptr);
+        if (cmdBuf_) vkFreeCommandBuffers(device.logical(), cmdPool_, 1, &cmdBuf_);
+        if (cmdPool_) vkDestroyCommandPool(device.logical(), cmdPool_, nullptr);
+        cmdPool_ = VK_NULL_HANDLE; cmdBuf_ = VK_NULL_HANDLE;
+        semImageAvailable_ = VK_NULL_HANDLE; semRenderFinished_ = VK_NULL_HANDLE; inFlight_ = VK_NULL_HANDLE;
+    }
+
+    void CommandContext::waitFence(const Device& device, uint64_t timeoutNs) const
+    {
+        VkResult r = vkWaitForFences(device.logical(), 1, &inFlight_, VK_TRUE, timeoutNs);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkWaitForFences failed: ") + vk_err(r));
+    }
+
+    void CommandContext::resetFence(const Device& device) const
+    {
+        vkResetFences(device.logical(), 1, &inFlight_);
+    }
+
+    VkCommandBuffer CommandContext::begin()
+    {
+        vkResetCommandBuffer(cmdBuf_, 0);
+        VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+        VkResult r = vkBeginCommandBuffer(cmdBuf_, &bi);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkBeginCommandBuffer failed: ") + vk_err(r));
+        return cmdBuf_;
+    }
+
+    void CommandContext::end()
+    {
+        VkResult r = vkEndCommandBuffer(cmdBuf_);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkEndCommandBuffer failed: ") + vk_err(r));
+    }
+
+    void CommandContext::beginRender(const RenderPass& rp, VkFramebuffer framebuffer, VkExtent2D extent, const VkClearValue& clear)
+    {
+        VkRenderPassBeginInfo rpbi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+        rpbi.renderPass = rp.handle();
+        rpbi.framebuffer = framebuffer;
+        rpbi.renderArea.offset = {0, 0};
+        rpbi.renderArea.extent = extent;
+        rpbi.clearValueCount = 1;
+        rpbi.pClearValues = &clear;
+        vkCmdBeginRenderPass(cmdBuf_, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
+        renderPassOpen_ = true;
+    }
+
+    void CommandContext::beginRender(const RenderPass& rp, VkFramebuffer framebuffer, VkExtent2D extent,
+                                     float r, float g, float b, float a)
+    {
+        VkClearValue clear{};
+        clear.color = {{r, g, b, a}};
+        beginRender(rp, framebuffer, extent, clear);
+    }
+
+    void CommandContext::endRender()
+    {
+        if (renderPassOpen_) {
+            vkCmdEndRenderPass(cmdBuf_);
+            renderPassOpen_ = false;
+        }
+    }
+
+    void CommandContext::bindPipeline(const Pipeline& pipeline)
+    {
+        vkCmdBindPipeline(cmdBuf_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle());
+    }
+
+    void CommandContext::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        vkCmdDraw(cmdBuf_, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void CommandContext::submit(VkQueue gfxQueue, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore, VkFence fence) const
+    {
+        VkPipelineStageFlags waitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+        si.waitSemaphoreCount = waitSemaphore ? 1u : 0u;
+        si.pWaitSemaphores = waitSemaphore ? &waitSemaphore : nullptr;
+        si.pWaitDstStageMask = waitSemaphore ? &waitStages : nullptr;
+        si.commandBufferCount = 1;
+        si.pCommandBuffers = &cmdBuf_;
+        si.signalSemaphoreCount = signalSemaphore ? 1u : 0u;
+        si.pSignalSemaphores = signalSemaphore ? &signalSemaphore : nullptr;
+        VkResult r = vkQueueSubmit(gfxQueue, 1, &si, fence);
+        if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkQueueSubmit failed: ") + vk_err(r));
+    }
+}
+
+

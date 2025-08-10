@@ -20,7 +20,7 @@ namespace luster
 		void cleanup();
 		// Convenience helpers
 		void getSize(int& width, int& height) const;
-		static bool pollEvents(bool& framebufferResized);
+		bool pollEvents(bool& framebufferResized);
 
 		// Utility: create Vulkan surface from this window
 		VkSurfaceKHR createVulkanSurface(VkInstance instance) const;

@@ -66,7 +66,7 @@ namespace luster
         cleanup();
     }
 
-    void Application::cleanup()
+    void Application::cleanup() const
     {
         if (renderer_)
         {

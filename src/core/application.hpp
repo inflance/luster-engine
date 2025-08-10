@@ -18,7 +18,7 @@ namespace luster
 	private:
 		void init();
 		void mainLoop();
-		void cleanup();
+		void cleanup() const;
 
 		std::unique_ptr<Renderer> renderer_ = nullptr;
 		std::unique_ptr<Window> window_ = nullptr;
