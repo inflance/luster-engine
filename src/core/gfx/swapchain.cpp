@@ -62,7 +62,14 @@ namespace luster::gfx
     {
         auto sup = querySwapchainSupport(device.physical(), device.surface());
         const VkSurfaceFormatKHR fmt = chooseSurfaceFormat(sup.formats, info.preferredFormat, info.preferredColorSpace);
-        const VkPresentModeKHR present = choosePresentMode(sup.presentModes);
+        VkPresentModeKHR present = info.preferredPresentMode;
+        bool supported = false;
+        for (auto m : sup.presentModes) if (m == present) { supported = true; break; }
+        if (!supported)
+        {
+            // fallback：MAILBOX 优先，否则 FIFO
+            present = choosePresentMode(sup.presentModes);
+        }
         const VkExtent2D extent = chooseExtent(sup.caps, window);
 
         uint32_t imageCount = sup.caps.minImageCount + 1;

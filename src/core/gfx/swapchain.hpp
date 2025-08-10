@@ -10,6 +10,8 @@ namespace luster::gfx
     {
         VkFormat preferredFormat = VK_FORMAT_B8G8R8A8_UNORM;
         VkColorSpaceKHR preferredColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        // FIFO 可锁帧到显示器刷新率；MAILBOX 可低延迟（若可用）
+        VkPresentModeKHR preferredPresentMode = VK_PRESENT_MODE_FIFO_KHR;
     };
 
     class Swapchain

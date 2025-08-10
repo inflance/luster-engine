@@ -34,6 +34,8 @@ namespace luster
 #else
 #define PROFILE_SCOPE(name_literal) do {} while(0)
 #endif
+
+    // FpsCounter moved to its own header: core/utils/fps_counter.hpp
 }
 
 

@@ -3,6 +3,9 @@
 #include "core/core.hpp"
 #include "core/gfx/device.hpp"
 #include "core/gfx/gpu_profiler.hpp"
+#include "core/utils/profiler.hpp"
+#include "core/utils/fps_counter.hpp"
+#include <chrono>
 #include <vector>
 
 namespace luster
@@ -40,6 +43,14 @@ namespace luster
 
 		std::unique_ptr<gfx::CommandContext> context_;
         gfx::GpuProfiler gpuProfiler_;
+
+        // FPS tracking
+        std::chrono::steady_clock::time_point fpsLastUpdate_{};
+        double fpsAccumMs_ = 0.0;
+        int fpsCount_ = 0;
+        // CPU侧 FPS 统计
+        luster::FpsCounter cpuFps_{"CPU"};
+        luster::FpsCounter gpuFps_{"GPU"};
 
 		void createInstance(SDL_Window* window, const gfx::Device::InitParams& params);
 		void createSwapchainAndViews(SDL_Window* window);

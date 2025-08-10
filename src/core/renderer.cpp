@@ -36,6 +36,11 @@ namespace luster
 			createFramebuffers();
 			createCommandsAndSync();
             gpuProfiler_.init(*device_);
+
+            auto now0 = std::chrono::steady_clock::now();
+            fpsLastUpdate_ = now0;
+            fpsAccumMs_ = 0.0;
+            fpsCount_ = 0;
 		}
 		catch (const std::exception& ex)
 		{
@@ -62,20 +67,31 @@ namespace luster
             }
 		);
 
-		if (result == gfx::Framebuffers::FrameResult::NeedRecreate)
-		{
-			recreateSwapchain(window);
-        double ms = 0.0;
-        if (gpuProfiler_.getLastTimingMs(*device_, ms))
-            spdlog::info("GPU frame {:.3f} ms", ms);
-        return true;
-		}
+        if (result == gfx::Framebuffers::FrameResult::NeedRecreate)
+        {
+            recreateSwapchain(window);
+            return true;
+        }
 		if (result == gfx::Framebuffers::FrameResult::Error)
 		{
 			spdlog::error("drawFrame failed");
 			return false;
 		}
-		return true;
+
+        // FPS accumulation based on GPU frame time
+        // GPU-based FPS
+        double ms = 0.0;
+        if (gpuProfiler_.getLastTimingMs(*device_, ms))
+        {
+            fpsAccumMs_ += ms;
+            ++fpsCount_;
+            gpuFps_.addSampleMs(ms);
+        }
+
+        // CPU-based FPS（基于每帧调用频率估算，不反映GPU时）
+        cpuFps_.tick();
+
+        return true;
 	}
 
 	void Renderer::recreateSwapchain(SDL_Window* window)
@@ -87,7 +103,9 @@ namespace luster
 
 		device_->waitIdle();
 		cleanupSwapchain();
-		swapchain_->recreate(*device_, window);
+		gfx::SwapchainCreateInfo sci{};
+		sci.preferredPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+		swapchain_->recreate(*device_, window, sci);
 		createRenderPass();
 		createPipeline();
 		createFramebuffers();
@@ -132,7 +150,9 @@ namespace luster
 	void Renderer::createSwapchainAndViews(SDL_Window* window)
 	{
 		swapchain_ = std::make_unique<gfx::Swapchain>();
-		swapchain_->create(*device_, window);
+		gfx::SwapchainCreateInfo sci{};
+		sci.preferredPresentMode = VK_PRESENT_MODE_FIFO_KHR; // 默认 VSync，可配置
+		swapchain_->create(*device_, window, sci);
 	}
 
 	void Renderer::createRenderPass()
