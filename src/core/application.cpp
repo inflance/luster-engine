@@ -1,4 +1,5 @@
 #include "core/application.hpp"
+#include "core/config.hpp"
 #include <stdexcept>
 
 namespace luster
@@ -33,7 +34,11 @@ namespace luster
         window_ = std::make_unique<Window>(
             "Luster (Vulkan)", width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
         renderer_ = std::make_unique<Renderer>();
-        renderer_->init(window_->sdl());
+        EngineConfig cfg{};
+        // 示例：按需修改 present mode 或 FPS 上报周期
+        // cfg.swapchain.preferredPresentMode = VK_PRESENT_MODE_MAILBOX_KHR; // 如需低延迟（若可用）
+        // cfg.fpsReportIntervalMs = 500.0;
+        renderer_->init(window_->sdl(), cfg);
     }
 
     void Application::mainLoop()

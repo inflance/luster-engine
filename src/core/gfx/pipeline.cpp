@@ -26,6 +26,19 @@ namespace luster::gfx
         VkPipelineShaderStageCreateInfo stages[] = {vsStage, fsStage};
 
         VkPipelineVertexInputStateCreateInfo vi{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+        VkVertexInputBindingDescription binding{};
+        if (info.vertexBinding && info.vertexBindingCount > 0)
+        {
+            // 目前仅支持单 binding，保持简单
+            binding = *info.vertexBinding;
+            vi.vertexBindingDescriptionCount = 1;
+            vi.pVertexBindingDescriptions = &binding;
+        }
+        if (info.vertexAttributes && info.vertexAttributeCount > 0)
+        {
+            vi.vertexAttributeDescriptionCount = info.vertexAttributeCount;
+            vi.pVertexAttributeDescriptions = info.vertexAttributes;
+        }
 
         VkPipelineInputAssemblyStateCreateInfo ia{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
         ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -65,6 +78,8 @@ namespace luster::gfx
         cb.attachmentCount = 1; cb.pAttachments = &colorBlendAttachment;
 
         VkPipelineLayoutCreateInfo pl{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+        pl.setLayoutCount = info.setLayoutCount;
+        pl.pSetLayouts = info.setLayouts;
         VkResult r = vkCreatePipelineLayout(device.logical(), &pl, nullptr, &pipelineLayout_);
         if (r != VK_SUCCESS) throw std::runtime_error("vkCreatePipelineLayout failed");
 

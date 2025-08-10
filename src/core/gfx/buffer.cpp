@@ -1,20 +1,20 @@
+// Single, clean implementation (removed duplicate definitions)
 #include "core/gfx/buffer.hpp"
 #include "core/gfx/device.hpp"
 #include <stdexcept>
-#include <vector>
 
 namespace luster::gfx
 {
     static uint32_t findMemoryType(VkPhysicalDevice gpu, uint32_t typeFilter, VkMemoryPropertyFlags properties)
     {
-        VkPhysicalDeviceMemoryProperties memProps{};
-        vkGetPhysicalDeviceMemoryProperties(gpu, &memProps);
-        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i)
+        VkPhysicalDeviceMemoryProperties memProperties{};
+        vkGetPhysicalDeviceMemoryProperties(gpu, &memProperties);
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         {
-            if ((typeFilter & (1u << i)) && (memProps.memoryTypes[i].propertyFlags & properties) == properties)
+            if ((typeFilter & (1u << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
                 return i;
         }
-        throw std::runtime_error("Failed to find suitable memory type");
+        throw std::runtime_error("No suitable memory type found");
     }
 
     void Buffer::create(const Device& device, const BufferCreateInfo& info)
@@ -26,6 +26,7 @@ namespace luster::gfx
         bi.size = info.size;
         bi.usage = info.usage;
         bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
         VkResult r = vkCreateBuffer(device.logical(), &bi, nullptr, &buffer_);
         if (r != VK_SUCCESS) throw std::runtime_error("vkCreateBuffer failed");
 
@@ -35,6 +36,7 @@ namespace luster::gfx
         VkMemoryAllocateInfo ai{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
         ai.allocationSize = req.size;
         ai.memoryTypeIndex = findMemoryType(device.physical(), req.memoryTypeBits, info.properties);
+
         r = vkAllocateMemory(device.logical(), &ai, nullptr, &memory_);
         if (r != VK_SUCCESS) throw std::runtime_error("vkAllocateMemory failed");
 
@@ -43,9 +45,9 @@ namespace luster::gfx
 
     void Buffer::cleanup(const Device& device)
     {
-        if (memory_) vkFreeMemory(device.logical(), memory_, nullptr);
-        if (buffer_) vkDestroyBuffer(device.logical(), buffer_, nullptr);
-        buffer_ = VK_NULL_HANDLE; memory_ = VK_NULL_HANDLE; size_ = 0;
+        if (memory_) { vkFreeMemory(device.logical(), memory_, nullptr); memory_ = VK_NULL_HANDLE; }
+        if (buffer_) { vkDestroyBuffer(device.logical(), buffer_, nullptr); buffer_ = VK_NULL_HANDLE; }
+        size_ = 0;
     }
 
     void* Buffer::map(const Device& device)

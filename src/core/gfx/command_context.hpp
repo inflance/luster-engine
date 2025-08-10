@@ -27,11 +27,15 @@ namespace luster::gfx
         void beginRender(const RenderPass& rp, VkFramebuffer framebuffer, VkExtent2D extent, const VkClearValue& clear);
         void beginRender(const RenderPass& rp, VkFramebuffer framebuffer, VkExtent2D extent,
                          float r, float g, float b, float a);
+        void beginRender(const RenderPass& rp, VkFramebuffer framebuffer, VkExtent2D extent,
+                         const VkClearValue* clears, uint32_t clearCount);
         void endRender();
         // Debug label helpers (no-op if extension not present)
         void beginLabel(const char* name, float r = 0.2f, float g = 0.6f, float b = 0.9f, float a = 1.0f);
         void endLabel();
         void bindPipeline(const Pipeline& pipeline);
+        void bindVertexBuffers(uint32_t firstBinding, const VkBuffer* buffers, const VkDeviceSize* offsets, uint32_t count);
+        void bindDescriptorSets(VkPipelineLayout layout, uint32_t firstSet, const VkDescriptorSet* sets, uint32_t count);
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 
         // Submit current command buffer with common triangle pipeline usage

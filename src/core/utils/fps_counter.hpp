@@ -26,7 +26,8 @@ namespace luster
             sampleAccumMs_ += frameMs;
             ++sampleCount_;
             const auto now = std::chrono::steady_clock::now();
-            const double elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSampleReport_).count();
+            const double elapsedMs = static_cast<double>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSampleReport_).count());
             if (elapsedMs >= reportIntervalMs_ && sampleCount_ > 0)
             {
                 const double avgMs = sampleAccumMs_ / static_cast<double>(sampleCount_);
@@ -42,7 +43,8 @@ namespace luster
         {
             ++tickCount_;
             const auto now = std::chrono::steady_clock::now();
-            const double elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTickReport_).count();
+            const double elapsedMs = static_cast<double>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTickReport_).count());
             if (elapsedMs >= reportIntervalMs_ && tickCount_ > 0)
             {
                 const double fps = 1000.0 * static_cast<double>(tickCount_) / std::max(1.0, elapsedMs);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/core.hpp"
-#include <cstdint>
 
 namespace luster::gfx
 {
@@ -11,7 +10,7 @@ namespace luster::gfx
     {
         VkDeviceSize size = 0;
         VkBufferUsageFlags usage = 0;
-        VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        VkMemoryPropertyFlags properties = 0;
     };
 
     class Buffer

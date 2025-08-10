@@ -145,6 +145,16 @@ namespace luster::gfx
         vkCmdBindPipeline(cmdBuf_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle());
     }
 
+    void CommandContext::bindVertexBuffers(uint32_t firstBinding, const VkBuffer* buffers, const VkDeviceSize* offsets, uint32_t count)
+    {
+        vkCmdBindVertexBuffers(cmdBuf_, firstBinding, count, buffers, offsets);
+    }
+
+    void CommandContext::bindDescriptorSets(VkPipelineLayout layout, uint32_t firstSet, const VkDescriptorSet* sets, uint32_t count)
+    {
+        vkCmdBindDescriptorSets(cmdBuf_, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, firstSet, count, sets, 0, nullptr);
+    }
+
     void CommandContext::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
         vkCmdDraw(cmdBuf_, vertexCount, instanceCount, firstVertex, firstInstance);
