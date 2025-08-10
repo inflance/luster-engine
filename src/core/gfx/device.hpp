@@ -1,18 +1,28 @@
 #pragma once
 
 #include "core/core.hpp"
+#include <vector>
 
 namespace luster::gfx
 {
 	class Device
 	{
 	public:
+		struct InitParams
+		{
+			bool enableValidation = true;
+			bool enableDebugUtils = true;
+			std::vector<const char*> extraInstanceExtensions{};
+			std::vector<const char*> extraInstanceLayers{};
+			std::vector<const char*> extraDeviceExtensions{};
+		};
 		Device();
 		~Device();
 
-		void init(SDL_Window* window);
+		void init(SDL_Window* window, const InitParams& params = InitParams{});
 		void cleanup();
 		void waitIdle() const;
+		bool isInitialized() const { return device_ != VK_NULL_HANDLE; }
 
 		// Accessors
 		VkInstance instance() const { return instance_; }
@@ -25,9 +35,9 @@ namespace luster::gfx
 		VkQueue presentQueue() const { return presentQueue_; }
 
 	private:
-		void createInstance(SDL_Window* window);
+		void createInstance(SDL_Window* window, const InitParams& params);
 		void pickDevice();
-		void createDevice();
+		void createDevice(const InitParams& params);
 		void destroyDebugMessenger();
 
 		// Vulkan objects

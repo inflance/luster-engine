@@ -112,11 +112,11 @@ namespace luster::gfx
 	Device::Device() = default;
 	Device::~Device() { cleanup(); }
 
-	void Device::init(SDL_Window* window)
+    void Device::init(SDL_Window* window, const InitParams& params)
 	{
-		createInstance(window);
-		pickDevice();
-		createDevice();
+        createInstance(window, params);
+        pickDevice();
+        createDevice(params);
 	}
 
 	void Device::cleanup()
@@ -144,7 +144,7 @@ namespace luster::gfx
 		if (device_) vkDeviceWaitIdle(device_);
 	}
 
-	void Device::createInstance(SDL_Window* window)
+    void Device::createInstance(SDL_Window* window, const InitParams& params)
 	{
 		Uint32 extCount = 0;
 		const char* const* sdlExts = SDL_Vulkan_GetInstanceExtensions(&extCount);
@@ -153,28 +153,27 @@ namespace luster::gfx
 			throw std::runtime_error("SDL_Vulkan_GetInstanceExtensions returned empty");
 		}
 		std::vector<const char*> extensions(sdlExts, sdlExts + extCount);
+        // layers
+        std::vector<const char*> layers;
+        if (params.enableValidation && hasInstanceLayer("VK_LAYER_KHRONOS_validation"))
+        {
+            layers.push_back("VK_LAYER_KHRONOS_validation");
+            spdlog::info("Enabling validation layer: VK_LAYER_KHRONOS_validation");
+        }
+        for (auto* l : params.extraInstanceLayers) layers.push_back(l);
 
-		std::vector<const char*> layers;
-		if (hasInstanceLayer("VK_LAYER_KHRONOS_validation"))
-		{
-			layers.push_back("VK_LAYER_KHRONOS_validation");
-			spdlog::info("Enabling validation layer: VK_LAYER_KHRONOS_validation");
-		}
-		else
-		{
-			spdlog::warn("Validation layer not available: VK_LAYER_KHRONOS_validation");
-		}
-
-		bool enableDebugUtils = hasInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		if (enableDebugUtils)
-		{
-			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-			spdlog::info("Enabling instance extension: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		}
-		else
-		{
-			spdlog::warn("Instance extension not available: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		}
+        // extensions
+        bool canDebugUtils = hasInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        if (params.enableDebugUtils && canDebugUtils)
+        {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            spdlog::info("Enabling instance extension: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+        else if (params.enableDebugUtils)
+        {
+            spdlog::warn("Instance extension not available: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+        for (auto* e : params.extraInstanceExtensions) extensions.push_back(e);
 
 		VkApplicationInfo app{};
 		app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -184,8 +183,8 @@ namespace luster::gfx
 		app.engineVersion = VK_MAKE_VERSION(0, 1, 0);
 		app.apiVersion = VK_API_VERSION_1_3;
 
-		VkDebugUtilsMessengerCreateInfoEXT dbgInfo{};
-		if (enableDebugUtils) fillDebugCreateInfo(dbgInfo);
+        VkDebugUtilsMessengerCreateInfoEXT dbgInfo{};
+        if (params.enableDebugUtils && canDebugUtils) fillDebugCreateInfo(dbgInfo);
 
 		VkInstanceCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -194,12 +193,12 @@ namespace luster::gfx
 		ci.ppEnabledExtensionNames = extensions.data();
 		ci.enabledLayerCount = static_cast<uint32_t>(layers.size());
 		ci.ppEnabledLayerNames = layers.empty() ? nullptr : layers.data();
-		ci.pNext = enableDebugUtils ? &dbgInfo : nullptr;
+        ci.pNext = (params.enableDebugUtils && canDebugUtils) ? &dbgInfo : nullptr;
 
 		VkResult r = vkCreateInstance(&ci, nullptr, &instance_);
 		if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateInstance failed: ") + vk_err(r));
 
-		if (enableDebugUtils)
+        if (params.enableDebugUtils && canDebugUtils)
 		{
 			if (setupDebugMessenger(instance_, &debugMessenger_) != VK_SUCCESS)
 			{
@@ -268,7 +267,7 @@ namespace luster::gfx
 		throw std::runtime_error("Failed to find suitable GPU");
 	}
 
-	void Device::createDevice()
+    void Device::createDevice(const InitParams& params)
 	{
 		float prio = 1.0f;
 		std::vector<VkDeviceQueueCreateInfo> qcis;
@@ -286,15 +285,16 @@ namespace luster::gfx
 		}
 
 		VkPhysicalDeviceFeatures feats{};
-		const char* extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        for (auto* e : params.extraDeviceExtensions) extensions.push_back(e);
 
 		VkDeviceCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		ci.queueCreateInfoCount = static_cast<uint32_t>(qcis.size());
 		ci.pQueueCreateInfos = qcis.data();
 		ci.pEnabledFeatures = &feats;
-		ci.enabledExtensionCount = 1;
-		ci.ppEnabledExtensionNames = extensions;
+        ci.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        ci.ppEnabledExtensionNames = extensions.data();
 
 		VkResult r = vkCreateDevice(gpu_, &ci, nullptr, &device_);
 		if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateDevice failed: ") + vk_err(r));
