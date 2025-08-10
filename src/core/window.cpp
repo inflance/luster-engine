@@ -22,6 +22,11 @@ namespace luster
 
 	Window::~Window()
 	{
+		cleanup();
+	}
+
+	void Window::cleanup()
+	{
 		if (window_)
 		{
 			SDL_DestroyWindow(window_);

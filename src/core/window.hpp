@@ -17,9 +17,10 @@ namespace luster
 
 		SDL_Window* sdl() const { return window_; }
 
+		void cleanup();
 		// Convenience helpers
 		void getSize(int& width, int& height) const;
-		bool pollEvents(bool& framebufferResized);
+		static bool pollEvents(bool& framebufferResized);
 
 		// Utility: create Vulkan surface from this window
 		VkSurfaceKHR createVulkanSurface(VkInstance instance) const;

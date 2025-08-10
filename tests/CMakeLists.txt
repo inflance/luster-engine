@@ -1,20 +1,16 @@
-# 测试框架配置
-find_package(GTest QUIET)
+# 测试框架配置（始终使用内置的 googletest，避免与系统已安装版本产生运行库/配置不一致）
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
 
-if(NOT GTest_FOUND)
-    # 使用 FetchContent 获取 GoogleTest
-    include(FetchContent)
-    FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG release-1.12.1
-    )
-    
-    # 对于 Windows: 防止覆盖父项目的编译器/链接器设置
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    
-    FetchContent_MakeAvailable(googletest)
-endif()
+# 让 googletest 使用与父项目一致的运行时库（Debug 用 /MDd，Release 用 /MD），
+# 避免与 Debug 目标链接时出现 RuntimeLibrary/_ITERATOR_DEBUG_LEVEL 不匹配。
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
 
 # 测试可执行文件
 add_executable(luster_tests
@@ -23,10 +19,9 @@ add_executable(luster_tests
 )
 
 # 链接测试框架
-target_link_libraries(luster_tests 
-    PRIVATE 
+target_link_libraries(luster_tests
+    PRIVATE
     GTest::gtest_main
-    GTest::gmock_main
     luster::core
     luster::thirdparty
 )
