@@ -108,7 +108,8 @@ namespace luster
 		auto now = std::chrono::steady_clock::now();
 		float seconds = std::chrono::duration<float>(now - t0).count();
 		const glm::mat4& proj = camera_.proj();
-		const glm::mat4& view = glm::translate(glm::mat4(1.0f), {0, 0, -1});
+		//const glm::mat4& view = glm::translate(glm::mat4(1.0f), {0, 0, -1});
+		const glm::mat4& view = camera_.view();
 		glm::mat4 model = glm::rotate(glm::mat4(1.0f), seconds, glm::vec3(0, 1, 0));
 		glm::mat4 mvp = proj * view * model;
 		if (uniformBuffer_)

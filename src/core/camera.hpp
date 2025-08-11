@@ -118,9 +118,9 @@ namespace luster
         float near_ = 0.1f;
         float far_ = 100.0f;
 
-        glm::vec3 eye_{0.0f, 0.0f, 3.0f};
+        glm::vec3 eye_{0.0f, 0.0f, -3.0f};
         glm::vec3 target_{0.0f, 0.0f, 0.0f};
-        glm::vec3 up_{0.0f, 0.0f, 1.0f};
+        glm::vec3 up_{0.0f, 1.0f, 0.0f};
 
         // input params
         float moveSpeed_ = 8.0f;           // units per second
