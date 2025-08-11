@@ -10,11 +10,14 @@
 #include "core/gfx/buffer.hpp"
 #include "core/gfx/vertex_layout.hpp"
 #include "core/gfx/descriptor.hpp"
+#include "core/gfx/mesh.hpp"
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "utils/log.hpp"
 
 namespace luster
 {
@@ -71,21 +74,49 @@ namespace luster
         init(window, cfg);
     }
 
+    void Renderer::update(float dt)
+    {
+        // 更新相机（使用真实 dt）
+        camera_.setPerspective(glm::radians(60.0f), float(swapchain_->extent().width) / float(swapchain_->extent().height), 0.1f, 100.0f);
+        camera_.updateFromSdl(dt);
+        // 定期打印相机位置
+        const auto now = std::chrono::steady_clock::now();
+        if (camLogLast_.time_since_epoch().count() == 0) camLogLast_ = now;
+        const double elapsedMs = static_cast<double>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - camLogLast_).count());
+        if (elapsedMs >= camLogIntervalMs_)
+        {
+            const bool* ks = SDL_GetKeyboardState(nullptr);
+            bool any = ks[SDL_SCANCODE_W] || ks[SDL_SCANCODE_A] || ks[SDL_SCANCODE_S] || ks[SDL_SCANCODE_D];
+            const glm::vec3& e = camera_.eye();
+            if (any)
+                spdlog::info("Camera pos: ({:.3f}, {:.3f}, {:.3f}) WASD:{}{}{}{} dt:{:.3f}", e.x, e.y, e.z,
+                              ks[SDL_SCANCODE_W]?"W":"-", ks[SDL_SCANCODE_A]?"A":"-",
+                              ks[SDL_SCANCODE_S]?"S":"-", ks[SDL_SCANCODE_D]?"D":"-", dt);
+            else
+                spdlog::info("Camera pos: ({:.3f}, {:.3f}, {:.3f})", e.x, e.y, e.z);
+            camLogLast_ = now;
+        }
+    }
+
 	bool Renderer::drawFrame(SDL_Window* window)
 	{
         // Update MVP (rotation over time)
         static auto t0 = std::chrono::steady_clock::now();
         auto now = std::chrono::steady_clock::now();
         float seconds = std::chrono::duration<float>(now - t0).count();
-        glm::mat4 proj = glm::ortho(-1.2f, 1.2f, -0.9f, 0.9f);
-        glm::mat4 view = glm::mat4(1.0f);
-        glm::mat4 model = glm::rotate(glm::mat4(1.0f), seconds, glm::vec3(0, 0, 1));
+        const glm::mat4& proj = camera_.proj();
+        const glm::mat4& view = glm::translate(glm::mat4(1.0f), {0, 0 ,-1});
+        glm::mat4 model = glm::rotate(glm::mat4(1.0f), seconds, glm::vec3(0, 1, 0));
         glm::mat4 mvp = proj * view * model;
         if (uniformBuffer_)
         {
             void* p = uniformBuffer_->map(*device_);
             memcpy(p, &mvp, sizeof(mvp));
             uniformBuffer_->unmap(*device_);
+        }else
+        {
+            spdlog::error("uniform buffer not init");
         }
 
         auto result = framebuffers_->drawFrame(
@@ -97,15 +128,12 @@ namespace luster
                 context_->beginRender(*renderPass_, framebuffers_->handles()[imageIndex], swapchain_->extent(),
 				                      0.05f, 0.06f, 0.09f, 1.0f);
 				context_->bindPipeline(*pipeline_);
-                // bind vertex buffer
-                const VkBuffer vbs[] = { vertexBuffer_ ? vertexBuffer_->handle() : VK_NULL_HANDLE };
-                const VkDeviceSize ofs[] = { 0 };
-                if (vbs[0] != VK_NULL_HANDLE) context_->bindVertexBuffers(0, vbs, ofs, 1);
+                // bind mesh buffers
+                if (mesh_) mesh_->bind(*context_);
                 // bind descriptor set (UBO)
                 if (dset_) { VkDescriptorSet set = dset_->handle(); context_->bindDescriptorSets(pipeline_->layout(), 0, &set, 1); }
-                // bind index buffer & draw indexed
-                if (indexBuffer_) context_->bindIndexBuffer(indexBuffer_->handle(), 0, VK_INDEX_TYPE_UINT16);
-                context_->drawIndexed(3);
+                // draw indexed
+                context_->drawIndexed(mesh_ ? mesh_->indexCount() : 0);
 				context_->endRender();
                 gpuProfiler_.endFrame(*context_);
                 gpuProfiler_.endLabel(*context_);
@@ -185,6 +213,7 @@ namespace luster
         if (uniformBuffer_) { uniformBuffer_->cleanup(*device_); uniformBuffer_.reset(); }
         if (vertexBuffer_) { vertexBuffer_->cleanup(*device_); vertexBuffer_.reset(); }
         if (indexBuffer_)   { indexBuffer_->cleanup(*device_);   indexBuffer_.reset(); }
+        if (mesh_)          { mesh_->cleanup(*device_);          mesh_.reset(); }
 		if (device_)
 		{
 			device_->cleanup();
@@ -245,35 +274,9 @@ namespace luster
     void Renderer::createGeometry()
     {
         if (!vertexBuffer_) vertexBuffer_ = std::make_unique<gfx::Buffer>();
-        // 2D pos + RGB color
-        struct V { float px, py; float r, g, b; };
-        const V verts[] = {
-            { 0.0f, -0.6f, 1.0f, 0.2f, 0.2f },
-            { 0.6f,  0.6f, 0.2f, 1.0f, 0.2f },
-            { -0.6f, 0.6f, 0.2f, 0.2f, 1.0f }
-        };
-        gfx::BufferCreateInfo bi{};
-        bi.size = sizeof(verts);
-        bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bi.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        vertexBuffer_->cleanup(*device_);
-        vertexBuffer_->create(*device_, bi);
-        void* data = vertexBuffer_->map(*device_);
-        memcpy(data, verts, sizeof(verts));
-        vertexBuffer_->unmap(*device_);
-
-        // index buffer (triangle)
-        if (!indexBuffer_) indexBuffer_ = std::make_unique<gfx::Buffer>();
-        const uint16_t indices[] = {0, 1, 2};
-        gfx::BufferCreateInfo ibi{};
-        ibi.size = sizeof(indices);
-        ibi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        ibi.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        indexBuffer_->cleanup(*device_);
-        indexBuffer_->create(*device_, ibi);
-        void* idata = indexBuffer_->map(*device_);
-        memcpy(idata, indices, sizeof(indices));
-        indexBuffer_->unmap(*device_);
+        if (!mesh_) mesh_ = std::make_unique<gfx::Mesh>();
+        mesh_->cleanup(*device_);
+        mesh_->createCube(*device_);
 
         if (!uniformBuffer_) uniformBuffer_ = std::make_unique<gfx::Buffer>();
         gfx::BufferCreateInfo ubi{};
@@ -315,13 +318,9 @@ namespace luster
         info.setLayoutCount = 1;
         // vertex input via VertexLayout (recreate to avoid duplicated attributes)
         vertexLayout_ = std::make_unique<gfx::VertexLayout>();
-        vertexLayout_->setBinding(0, sizeof(float) * 5, VK_VERTEX_INPUT_RATE_VERTEX);
-        vertexLayout_->addAttribute(0, 0, VK_FORMAT_R32G32_SFLOAT, 0);
-        vertexLayout_->addAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float)*2);
-        info.vertexBinding = vertexLayout_->binding();
-        info.vertexBindingCount = vertexLayout_->hasBinding() ? 1u : 0u;
-        info.vertexAttributes = vertexLayout_->attributesData();
-        info.vertexAttributeCount = vertexLayout_->attributeCount();
+        // use mesh's layout
+        vertexLayout_ = std::make_unique<gfx::VertexLayout>(*mesh_->vertexLayout());
+        info.vertexLayout = mesh_->vertexLayout();
         pipeline_->create(*device_, *renderPass_, info);
 
         // Descriptor pool & set

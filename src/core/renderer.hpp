@@ -6,6 +6,7 @@
 #include "core/utils/profiler.hpp"
 #include "core/utils/fps_counter.hpp"
 #include "core/config.hpp"
+#include "core/camera.hpp"
 #include <chrono>
 #include <vector>
 
@@ -26,6 +27,7 @@ namespace luster
       class DescriptorSetLayout;
       class DescriptorPool;
       class DescriptorSet;
+      class Mesh;
 	}
 
 	class Renderer
@@ -38,6 +40,7 @@ namespace luster
 		// Backward-compatible overload: only device params → build EngineConfig under the hood
 		void init(SDL_Window* window, const gfx::Device::InitParams& params = gfx::Device::InitParams{});
 		bool drawFrame(SDL_Window* window);
+		void update(float dt);
 		void recreateSwapchain(SDL_Window* window);
 		void cleanup();
 
@@ -58,6 +61,7 @@ namespace luster
         // Geometry & UBO
         std::unique_ptr<gfx::Buffer> vertexBuffer_;
         std::unique_ptr<gfx::Buffer> indexBuffer_;
+        std::unique_ptr<gfx::Mesh> mesh_;
         std::unique_ptr<gfx::Buffer> uniformBuffer_;
         std::unique_ptr<gfx::VertexLayout> vertexLayout_;
         std::unique_ptr<gfx::DescriptorSetLayout> dsl_;
@@ -71,6 +75,11 @@ namespace luster
         // CPU侧 FPS 统计
         luster::FpsCounter cpuFps_{"CPU"};
         luster::FpsCounter gpuFps_{"GPU"};
+
+        // Camera
+        Camera camera_{};
+        std::chrono::steady_clock::time_point camLogLast_{};
+        double camLogIntervalMs_ = 500.0;
 
 		void createInstance(SDL_Window* window, const gfx::Device::InitParams& params);
 		void createSwapchainAndViews(SDL_Window* window);

@@ -2,6 +2,7 @@
 #include "core/gfx/device.hpp"
 #include "core/gfx/render_pass.hpp"
 #include "core/gfx/shader.hpp"
+#include "core/gfx/vertex_layout.hpp"
 #include <stdexcept>
 
 namespace luster::gfx
@@ -27,17 +28,26 @@ namespace luster::gfx
 
         VkPipelineVertexInputStateCreateInfo vi{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
         VkVertexInputBindingDescription binding{};
-        if (info.vertexBinding && info.vertexBindingCount > 0)
+        if (info.vertexLayout)
         {
-            // 目前仅支持单 binding，保持简单
-            binding = *info.vertexBinding;
-            vi.vertexBindingDescriptionCount = 1;
-            vi.pVertexBindingDescriptions = &binding;
+            const auto* vl = info.vertexLayout;
+            if (vl->binding()) { binding = *vl->binding(); vi.vertexBindingDescriptionCount = 1; vi.pVertexBindingDescriptions = &binding; }
+            vi.vertexAttributeDescriptionCount = vl->attributeCount();
+            vi.pVertexAttributeDescriptions = vl->attributesData();
         }
-        if (info.vertexAttributes && info.vertexAttributeCount > 0)
+        else
         {
-            vi.vertexAttributeDescriptionCount = info.vertexAttributeCount;
-            vi.pVertexAttributeDescriptions = info.vertexAttributes;
+            if (info.vertexBinding && info.vertexBindingCount > 0)
+            {
+                binding = *info.vertexBinding;
+                vi.vertexBindingDescriptionCount = 1;
+                vi.pVertexBindingDescriptions = &binding;
+            }
+            if (info.vertexAttributes && info.vertexAttributeCount > 0)
+            {
+                vi.vertexAttributeDescriptionCount = info.vertexAttributeCount;
+                vi.pVertexAttributeDescriptions = info.vertexAttributes;
+            }
         }
 
         VkPipelineInputAssemblyStateCreateInfo ia{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};

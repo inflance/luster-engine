@@ -45,8 +45,12 @@ namespace luster
     {
         bool running = true;
         bool framebufferResized = false;
+        auto last = std::chrono::steady_clock::now();
         while (running)
         {
+            auto now = std::chrono::steady_clock::now();
+            float dt = std::chrono::duration<float>(now - last).count();
+            last = now;
             running = window_->pollEvents(framebufferResized);
             if (framebufferResized)
             {
@@ -54,6 +58,7 @@ namespace luster
                 framebufferResized = false;
             }
 
+            renderer_->update(dt);
             if (!renderer_->drawFrame(window_->sdl()))
             {
                 // On hard failure, exit the loop

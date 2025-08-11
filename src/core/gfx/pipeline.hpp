@@ -7,6 +7,7 @@ namespace luster::gfx
 {
     class Device;
     class RenderPass;
+    class VertexLayout;
 
     struct PipelineCreateInfo
     {
@@ -20,6 +21,8 @@ namespace luster::gfx
         uint32_t vertexBindingCount = 0; // 0 or 1
         const VkVertexInputAttributeDescription* vertexAttributes = nullptr;
         uint32_t vertexAttributeCount = 0;
+        // 可选更高层：直接传 VertexLayout（优先于上面的裸指针字段）
+        const VertexLayout* vertexLayout = nullptr;
         // 可选：描述符布局（如 UBO）
         const VkDescriptorSetLayout* setLayouts = nullptr;
         uint32_t setLayoutCount = 0;

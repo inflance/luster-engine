@@ -7,6 +7,10 @@
 
 namespace luster
 {
+// 控制是否打印 FPS 日志（默认不打印）
+#if !defined(LUSTER_PRINT_FPS)
+#define LUSTER_PRINT_FPS 0
+#endif
     class FpsCounter
     {
     public:
@@ -32,7 +36,9 @@ namespace luster
             {
                 const double avgMs = sampleAccumMs_ / static_cast<double>(sampleCount_);
                 const double fps = avgMs > 0.0 ? 1000.0 / avgMs : 0.0;
+#if LUSTER_PRINT_FPS
                 spdlog::info("{} {:.2f} ms | {:.1f} FPS", label_.empty() ? "GPU" : label_, avgMs, fps);
+#endif
                 sampleAccumMs_ = 0.0;
                 sampleCount_ = 0;
                 lastSampleReport_ = now;
@@ -48,7 +54,9 @@ namespace luster
             if (elapsedMs >= reportIntervalMs_ && tickCount_ > 0)
             {
                 const double fps = 1000.0 * static_cast<double>(tickCount_) / std::max(1.0, elapsedMs);
+#if LUSTER_PRINT_FPS
                 spdlog::info("{} {:.1f} FPS", label_.empty() ? "CPU" : label_, fps);
+#endif
                 tickCount_ = 0;
                 lastTickReport_ = now;
             }

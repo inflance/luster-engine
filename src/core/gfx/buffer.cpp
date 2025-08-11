@@ -42,6 +42,7 @@ namespace luster::gfx
         if (r != VK_SUCCESS) throw std::runtime_error("vkAllocateMemory failed");
 
         vkBindBufferMemory(device.logical(), buffer_, memory_, 0);
+        hostVisible_ = (info.properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
     }
 
     void Buffer::cleanup(const Device& device)
@@ -68,9 +69,11 @@ namespace luster::gfx
     {
         if (size == 0 || !src) return;
         // Try direct map
-        void* dst = nullptr;
-        if (vkMapMemory(device.logical(), memory_, 0, size_, 0, &dst) == VK_SUCCESS)
+        if (hostVisible_)
         {
+            void* dst = nullptr;
+            if (vkMapMemory(device.logical(), memory_, 0, size_, 0, &dst) != VK_SUCCESS)
+                throw std::runtime_error("vkMapMemory failed for host-visible buffer");
             std::memcpy(dst, src, static_cast<size_t>(std::min(size_, size)));
             vkUnmapMemory(device.logical(), memory_);
             return;

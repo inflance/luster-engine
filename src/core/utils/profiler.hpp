@@ -17,7 +17,9 @@ namespace luster
         {
             auto end = std::chrono::high_resolution_clock::now();
             auto us = std::chrono::duration_cast<std::chrono::microseconds>(end - start_).count();
+#if LUSTER_PRINT_PROFILING
             spdlog::info("[PROFILE] {}: {} us", name_, us);
+#endif
         }
 
     private:
@@ -27,6 +29,11 @@ namespace luster
 
 #if !defined(LUSTER_ENABLE_PROFILING)
 #define LUSTER_ENABLE_PROFILING 1
+#endif
+
+// 控制是否打印 PROFILE 日志（默认不打印）
+#if !defined(LUSTER_PRINT_PROFILING)
+#define LUSTER_PRINT_PROFILING 0
 #endif
 
 #if LUSTER_ENABLE_PROFILING

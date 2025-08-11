@@ -1,6 +1,11 @@
 // Common core includes and forward declarations
 #pragma once
 
+// GLM: use Vulkan depth range [0,1]
+#ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif
+
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>

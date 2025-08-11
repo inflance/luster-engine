@@ -35,6 +35,7 @@ namespace luster::gfx
         VkBuffer buffer_ = VK_NULL_HANDLE;
         VkDeviceMemory memory_ = VK_NULL_HANDLE;
         VkDeviceSize size_ = 0;
+        bool hostVisible_ = false;
     };
 }
 
