@@ -74,7 +74,9 @@ namespace luster::gfx
 	{
 		uint32_t count = 0;
 		if (vkEnumerateInstanceLayerProperties(&count, nullptr) != VK_SUCCESS) return false;
+
 		std::vector<VkLayerProperties> layers(count);
+
 		if (count) vkEnumerateInstanceLayerProperties(&count, layers.data());
 		for (auto& lp : layers) if (std::strcmp(lp.layerName, name) == 0) return true;
 		return false;
@@ -84,7 +86,9 @@ namespace luster::gfx
 	{
 		uint32_t count = 0;
 		if (vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr) != VK_SUCCESS) return false;
+
 		std::vector<VkExtensionProperties> exts(count);
+
 		if (count) vkEnumerateInstanceExtensionProperties(nullptr, &count, exts.data());
 		for (auto& ep : exts) if (std::strcmp(ep.extensionName, name) == 0) return true;
 		return false;
@@ -95,6 +99,7 @@ namespace luster::gfx
 		if (!out) return VK_ERROR_INITIALIZATION_FAILED;
 		auto fpCreate = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
 			vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+
 		if (!fpCreate) return VK_ERROR_EXTENSION_NOT_PRESENT;
 		VkDebugUtilsMessengerCreateInfoEXT info{};
 		fillDebugCreateInfo(info);
@@ -112,11 +117,11 @@ namespace luster::gfx
 	Device::Device() = default;
 	Device::~Device() { cleanup(); }
 
-    void Device::init(SDL_Window* window, const InitParams& params)
+	void Device::init(SDL_Window* window, const InitParams& params)
 	{
-        createInstance(window, params);
-        pickDevice();
-        createDevice(params);
+		createInstance(window, params);
+		pickDevice();
+		createDevice(params);
 	}
 
 	void Device::cleanup()
@@ -144,7 +149,7 @@ namespace luster::gfx
 		if (device_) vkDeviceWaitIdle(device_);
 	}
 
-    void Device::createInstance(SDL_Window* window, const InitParams& params)
+	void Device::createInstance(SDL_Window* window, const InitParams& params)
 	{
 		Uint32 extCount = 0;
 		const char* const* sdlExts = SDL_Vulkan_GetInstanceExtensions(&extCount);
@@ -153,27 +158,27 @@ namespace luster::gfx
 			throw std::runtime_error("SDL_Vulkan_GetInstanceExtensions returned empty");
 		}
 		std::vector<const char*> extensions(sdlExts, sdlExts + extCount);
-        // layers
-        std::vector<const char*> layers;
-        if (params.enableValidation && hasInstanceLayer("VK_LAYER_KHRONOS_validation"))
-        {
-            layers.push_back("VK_LAYER_KHRONOS_validation");
-            spdlog::info("Enabling validation layer: VK_LAYER_KHRONOS_validation");
-        }
-        for (auto* l : params.extraInstanceLayers) layers.push_back(l);
+		// layers
+		std::vector<const char*> layers;
+		if (params.enableValidation && hasInstanceLayer("VK_LAYER_KHRONOS_validation"))
+		{
+			layers.push_back("VK_LAYER_KHRONOS_validation");
+			spdlog::info("Enabling validation layer: VK_LAYER_KHRONOS_validation");
+		}
+		for (auto* l : params.extraInstanceLayers) layers.push_back(l);
 
-        // extensions
-        bool canDebugUtils = hasInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        if (params.enableDebugUtils && canDebugUtils)
-        {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            spdlog::info("Enabling instance extension: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-        else if (params.enableDebugUtils)
-        {
-            spdlog::warn("Instance extension not available: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-        for (auto* e : params.extraInstanceExtensions) extensions.push_back(e);
+		// extensions
+		bool canDebugUtils = hasInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		if (params.enableDebugUtils && canDebugUtils)
+		{
+			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			spdlog::info("Enabling instance extension: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		}
+		else if (params.enableDebugUtils)
+		{
+			spdlog::warn("Instance extension not available: {}", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		}
+		for (auto* e : params.extraInstanceExtensions) extensions.push_back(e);
 
 		VkApplicationInfo app{};
 		app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -183,8 +188,8 @@ namespace luster::gfx
 		app.engineVersion = VK_MAKE_VERSION(0, 1, 0);
 		app.apiVersion = VK_API_VERSION_1_3;
 
-        VkDebugUtilsMessengerCreateInfoEXT dbgInfo{};
-        if (params.enableDebugUtils && canDebugUtils) fillDebugCreateInfo(dbgInfo);
+		VkDebugUtilsMessengerCreateInfoEXT dbgInfo{};
+		if (params.enableDebugUtils && canDebugUtils) fillDebugCreateInfo(dbgInfo);
 
 		VkInstanceCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -193,12 +198,12 @@ namespace luster::gfx
 		ci.ppEnabledExtensionNames = extensions.data();
 		ci.enabledLayerCount = static_cast<uint32_t>(layers.size());
 		ci.ppEnabledLayerNames = layers.empty() ? nullptr : layers.data();
-        ci.pNext = (params.enableDebugUtils && canDebugUtils) ? &dbgInfo : nullptr;
+		ci.pNext = (params.enableDebugUtils && canDebugUtils) ? &dbgInfo : nullptr;
 
 		VkResult r = vkCreateInstance(&ci, nullptr, &instance_);
 		if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateInstance failed: ") + vk_err(r));
 
-        if (params.enableDebugUtils && canDebugUtils)
+		if (params.enableDebugUtils && canDebugUtils)
 		{
 			if (setupDebugMessenger(instance_, &debugMessenger_) != VK_SUCCESS)
 			{
@@ -246,7 +251,7 @@ namespace luster::gfx
 		if (!count) throw std::runtime_error("No Vulkan physical devices");
 		std::vector<VkPhysicalDevice> gpus(count);
 		vkEnumeratePhysicalDevices(instance_, &count, gpus.data());
-		for (auto d : gpus)
+		for (const auto d : gpus)
 		{
 			QueueFamilies q = findQueueFamilies(d, surface_);
 			uint32_t extCount = 0;
@@ -254,8 +259,10 @@ namespace luster::gfx
 			std::vector<VkExtensionProperties> devExts(extCount);
 			vkEnumerateDeviceExtensionProperties(d, nullptr, &extCount, devExts.data());
 			bool hasSwapchain = false;
-			for (auto& e : devExts) if (std::strcmp(e.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0) hasSwapchain
-				= true;
+			for (auto& e : devExts)
+				if (std::strcmp(e.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
+					hasSwapchain
+						= true;
 			if (q.graphics && q.present && hasSwapchain)
 			{
 				gpu_ = d;
@@ -267,13 +274,13 @@ namespace luster::gfx
 		throw std::runtime_error("Failed to find suitable GPU");
 	}
 
-    void Device::createDevice(const InitParams& params)
+	void Device::createDevice(const InitParams& params)
 	{
 		float prio = 1.0f;
 		std::vector<VkDeviceQueueCreateInfo> qcis;
 		std::array<uint32_t, 2> unique = {gfxQueueFamily_, presentQueueFamily_};
-		std::sort(unique.begin(), unique.end());
-		auto last = std::unique(unique.begin(), unique.end());
+		std::ranges::sort(unique);
+		auto last = std::ranges::unique(unique).begin();
 		for (auto it = unique.begin(); it != last; ++it)
 		{
 			VkDeviceQueueCreateInfo qci{};
@@ -285,16 +292,16 @@ namespace luster::gfx
 		}
 
 		VkPhysicalDeviceFeatures feats{};
-        std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-        for (auto* e : params.extraDeviceExtensions) extensions.push_back(e);
+		std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+		for (auto* e : params.extraDeviceExtensions) extensions.push_back(e);
 
 		VkDeviceCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		ci.queueCreateInfoCount = static_cast<uint32_t>(qcis.size());
 		ci.pQueueCreateInfos = qcis.data();
 		ci.pEnabledFeatures = &feats;
-        ci.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        ci.ppEnabledExtensionNames = extensions.data();
+		ci.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+		ci.ppEnabledExtensionNames = extensions.data();
 
 		VkResult r = vkCreateDevice(gpu_, &ci, nullptr, &device_);
 		if (r != VK_SUCCESS) throw std::runtime_error(std::string("vkCreateDevice failed: ") + vk_err(r));
@@ -302,10 +309,10 @@ namespace luster::gfx
 		vkGetDeviceQueue(device_, gfxQueueFamily_, 0, &gfxQueue_);
 		vkGetDeviceQueue(device_, presentQueueFamily_, 0, &presentQueue_);
 
-        // Cache timestampPeriod (ns per tick)
-        VkPhysicalDeviceProperties props{};
-        vkGetPhysicalDeviceProperties(gpu_, &props);
-        timestampPeriod_ = props.limits.timestampPeriod; // in nanoseconds per tick
+		// Cache timestampPeriod (ns per tick)
+		VkPhysicalDeviceProperties props{};
+		vkGetPhysicalDeviceProperties(gpu_, &props);
+		timestampPeriod_ = props.limits.timestampPeriod; // in nanoseconds per tick
 	}
 
 	void Device::destroyDebugMessenger()
@@ -314,55 +321,63 @@ namespace luster::gfx
 		debugMessenger_ = VK_NULL_HANDLE;
 	}
 
-    VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
-    {
-        for (VkFormat format : candidates)
-        {
-            VkFormatProperties props{};
-            vkGetPhysicalDeviceFormatProperties(gpu_, format, &props);
-            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-                return format;
-            if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-                return format;
-        }
-        throw std::runtime_error("No supported format found");
-    }
+	VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+	                                     VkFormatFeatureFlags features) const
+	{
+		for (VkFormat format : candidates)
+		{
+			VkFormatProperties props{};
+			vkGetPhysicalDeviceFormatProperties(gpu_, format, &props);
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+				return format;
+			if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+				return format;
+		}
+		throw std::runtime_error("No supported format found");
+	}
 
-    VkFormat Device::findDepthFormat() const
-    {
-        const std::vector<VkFormat> candidates = {
-            VK_FORMAT_D32_SFLOAT,
-            VK_FORMAT_D32_SFLOAT_S8_UINT,
-            VK_FORMAT_D24_UNORM_S8_UINT
-        };
-        return findSupportedFormat(candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    }
+	VkFormat Device::findDepthFormat() const
+	{
+		const std::vector<VkFormat> candidates = {
+			VK_FORMAT_D32_SFLOAT,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT
+		};
+		return findSupportedFormat(candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	}
 
-    void Device::submitImmediate(const std::function<void(VkCommandBuffer)>& recordCommands) const
-    {
-        VkCommandPool pool = VK_NULL_HANDLE;
-        VkCommandBuffer cmd = VK_NULL_HANDLE;
-        VkFence fence = VK_NULL_HANDLE;
-        VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-        pci.queueFamilyIndex = gfxQueueFamily_;
-        pci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        if (vkCreateCommandPool(device_, &pci, nullptr, &pool) != VK_SUCCESS) throw std::runtime_error("create pool failed");
-        VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-        ai.commandPool = pool; ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; ai.commandBufferCount = 1;
-        if (vkAllocateCommandBuffers(device_, &ai, &cmd) != VK_SUCCESS) throw std::runtime_error("alloc cmd failed");
-        VkFenceCreateInfo fci{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-        if (vkCreateFence(device_, &fci, nullptr, &fence) != VK_SUCCESS) throw std::runtime_error("create fence failed");
-        VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-        bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        vkBeginCommandBuffer(cmd, &bi);
-        recordCommands(cmd);
-        vkEndCommandBuffer(cmd);
-        VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-        si.commandBufferCount = 1; si.pCommandBuffers = &cmd;
-        vkQueueSubmit(gfxQueue_, 1, &si, fence);
-        vkWaitForFences(device_, 1, &fence, VK_TRUE, UINT64_C(1'000'000'000));
-        vkDestroyFence(device_, fence, nullptr);
-        vkFreeCommandBuffers(device_, pool, 1, &cmd);
-        vkDestroyCommandPool(device_, pool, nullptr);
-    }
+	void Device::submitImmediate(const std::function<void(VkCommandBuffer)>& recordCommands) const
+	{
+		VkCommandPool pool = VK_NULL_HANDLE;
+		VkCommandBuffer cmd = VK_NULL_HANDLE;
+		VkFence fence = VK_NULL_HANDLE;
+		VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+		pci.queueFamilyIndex = gfxQueueFamily_;
+		pci.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		if (vkCreateCommandPool(device_, &pci, nullptr, &pool) != VK_SUCCESS)
+			throw std::runtime_error(
+				"create pool failed");
+		VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+		ai.commandPool = pool;
+		ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		ai.commandBufferCount = 1;
+		if (vkAllocateCommandBuffers(device_, &ai, &cmd) != VK_SUCCESS) throw std::runtime_error("alloc cmd failed");
+		VkFenceCreateInfo fci{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+		if (vkCreateFence(device_, &fci, nullptr, &fence) != VK_SUCCESS)
+			throw
+				std::runtime_error("create fence failed");
+		VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+		bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(cmd, &bi);
+		recordCommands(cmd);
+		vkEndCommandBuffer(cmd);
+		VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+		si.commandBufferCount = 1;
+		si.pCommandBuffers = &cmd;
+		vkQueueSubmit(gfxQueue_, 1, &si, fence);
+		vkWaitForFences(device_, 1, &fence, VK_TRUE, UINT64_C(1'000'000'000));
+		vkDestroyFence(device_, fence, nullptr);
+		vkFreeCommandBuffers(device_, pool, 1, &cmd);
+		vkDestroyCommandPool(device_, pool, nullptr);
+	}
 }

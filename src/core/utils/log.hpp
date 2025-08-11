@@ -6,16 +6,14 @@
 
 namespace luster
 {
-    class Log
-    {
-    public:
-        static void init();
-        static void shutdown();
-        static std::shared_ptr<spdlog::logger>& core();
+	class Log
+	{
+	public:
+		static void init();
+		static void shutdown();
+		static std::shared_ptr<spdlog::logger>& core();
 
-    private:
-        static std::shared_ptr<spdlog::logger> coreLogger_;
-    };
+	private:
+		static std::shared_ptr<spdlog::logger> coreLogger_;
+	};
 }
-
-
