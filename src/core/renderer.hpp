@@ -8,6 +8,8 @@
 #include "core/config.hpp"
 #include "core/camera.hpp"
 #include "core/camera_controller.hpp"
+#include "core/ecs/registry.hpp"
+#include "core/ecs/components.hpp"
 #include <chrono>
 #include <vector>
 
@@ -81,6 +83,9 @@ namespace luster
         // Camera
         Camera camera_{};
         CameraController cameraController_{};
+
+        // ECS scene
+        ecs::Registry scene_{};
         std::chrono::steady_clock::time_point camLogLast_{};
         double camLogIntervalMs_ = 500.0;
 

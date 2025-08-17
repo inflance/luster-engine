@@ -51,6 +51,14 @@ namespace luster
 			createCommandsAndSync();
 			gpuProfiler_.init(*device_);
 
+			// ECS: create a simple entity with Transform + mesh/material tags
+			{
+				auto e = scene_.create();
+				scene_.add<ecs::Transform>(e, ecs::Transform{});
+				scene_.add<ecs::MeshTag>(e, ecs::MeshTag{});
+				scene_.add<ecs::MaterialTag>(e, ecs::MaterialTag{});
+			}
+
 			auto now0 = std::chrono::steady_clock::now();
 			fpsLastUpdate_ = now0;
 			fpsAccumMs_ = 0.0;
@@ -58,6 +66,12 @@ namespace luster
 			// Apply FPS intervals if customized
 			cpuFps_.setReportIntervalMs(config_.fpsReportIntervalMs);
 			gpuFps_.setReportIntervalMs(config_.fpsReportIntervalMs);
+
+			// Apply camera controller params from config
+			cameraController_.setMoveSpeed(config_.cameraController.moveSpeed);
+			cameraController_.setFastMultiplier(config_.cameraController.fastMultiplier);
+			cameraController_.setSlowMultiplier(config_.cameraController.slowMultiplier);
+			cameraController_.setMouseSensitivity(config_.cameraController.mouseSensitivity);
 		}
 		catch (const std::exception& ex)
 		{
@@ -96,21 +110,34 @@ namespace luster
 		if (elapsedMs >= camLogIntervalMs_)
 		{
 			const glm::vec3& e = camera_.eye();
-			spdlog::info("Camera pos: ({:.3f}, {:.3f}, {:.3f})", e.x, e.y, e.z);
+			spdlog::info("Camera pos: ({:.2f}, {:.2f}, {:.2f}) | speed:{:.1f}x sens:{:.3f}",
+			            e.x, e.y, e.z,
+			            cameraController_.fastMultiplier(), cameraController_.mouseSensitivity());
 			camLogLast_ = now;
 		}
 	}
 
 	bool Renderer::drawFrame(SDL_Window* window)
 	{
-		// Update MVP (rotation over time)
+		// Update MVP (from ECS Transform; rotate over time as example)
 		static auto t0 = std::chrono::steady_clock::now();
 		auto now = std::chrono::steady_clock::now();
 		float seconds = std::chrono::duration<float>(now - t0).count();
 		const glm::mat4& proj = camera_.proj();
 		//const glm::mat4& view = glm::translate(glm::mat4(1.0f), {0, 0, -1});
 		const glm::mat4& view = camera_.view();
-		glm::mat4 model = glm::rotate(glm::mat4(1.0f), seconds, glm::vec3(0, 1, 0));
+		glm::mat4 model = glm::mat4(1.0f);
+		for (auto e : scene_.view<ecs::Transform, ecs::MeshTag>())
+		{
+			auto* t = scene_.get<ecs::Transform>(e);
+			glm::mat4 S = glm::scale(glm::mat4(1.0f), t->scale);
+			glm::mat4 Rx = glm::rotate(glm::mat4(1.0f), t->rotationEuler.x, glm::vec3(1,0,0));
+			glm::mat4 Ry = glm::rotate(glm::mat4(1.0f), t->rotationEuler.y + seconds, glm::vec3(0,1,0));
+			glm::mat4 Rz = glm::rotate(glm::mat4(1.0f), t->rotationEuler.z, glm::vec3(0,0,1));
+			glm::mat4 T = glm::translate(glm::mat4(1.0f), t->position);
+			model = T * Rz * Ry * Rx * S;
+			break; // draw first for now
+		}
 		glm::mat4 mvp = proj * view * model;
 		if (uniformBuffer_)
 		{
@@ -171,6 +198,22 @@ namespace luster
 
 		// CPU-based FPS（基于每帧调用频率估算，不反映GPU时）
 		cpuFps_.tick();
+
+		// Debug: HUD-like minimal stats in title every half second
+		{
+			static auto lastHud = std::chrono::steady_clock::now();
+			auto n = std::chrono::steady_clock::now();
+			double ms = std::chrono::duration<double, std::milli>(n - lastHud).count();
+			if (ms > 500.0)
+			{
+				// Count entities/components (approx via sizes)
+				std::size_t entities = scene_.entities().size();
+				char buf[128] = {};
+				std::snprintf(buf, sizeof(buf), "Ent:%zu", entities);
+				SDL_SetWindowTitle(window, buf);
+				lastHud = n;
+			}
+		}
 
 		return true;
 	}

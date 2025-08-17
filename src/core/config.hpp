@@ -10,6 +10,13 @@ namespace luster
 		gfx::Device::InitParams device{};
 		gfx::SwapchainCreateInfo swapchain{}; // preferredPresentMode 可设置为 FIFO/MAILBOX 等
 		double fpsReportIntervalMs = 500.0; // FPS 输出间隔
+		struct CameraControllerOptions
+		{
+			float moveSpeed = 8.0f;
+			float fastMultiplier = 3.0f;
+			float slowMultiplier = 0.3f;
+			float mouseSensitivity = 0.005f;
+		} cameraController;
 		struct PipelineOptions
 		{
 			bool enableDepthTest = true;

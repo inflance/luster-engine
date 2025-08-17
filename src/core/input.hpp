@@ -20,10 +20,18 @@ namespace luster
         bool keyP = false;
         bool keyF1 = false;
 
-        // Mouse
+        // Mouse (absolute delta per frame)
         float mouseDx = 0.0f;
         float mouseDy = 0.0f;
         uint32_t mouseButtons = 0; // SDL_MouseButtonFlags
+
+        // Edges (press/release) for keys we care about
+        bool pressedP = false;
+        bool releasedP = false;
+        bool pressedF1 = false;
+        bool releasedF1 = false;
+        bool pressedF2 = false;
+        bool releasedF2 = false;
     };
 
     class Input
@@ -53,6 +61,17 @@ namespace luster
             snap.mouseDx = mx - lastx;
             snap.mouseDy = my - lasty;
             lastx = mx; lasty = my;
+            // Edge detection for keys (simple static previous state)
+            static bool prevP = false, prevF1 = false, prevF2 = false;
+            snap.pressedP = (ks[SDL_SCANCODE_P] && !prevP);
+            snap.releasedP = (!ks[SDL_SCANCODE_P] && prevP);
+            snap.pressedF1 = (ks[SDL_SCANCODE_F1] && !prevF1);
+            snap.releasedF1 = (!ks[SDL_SCANCODE_F1] && prevF1);
+            prevP = ks[SDL_SCANCODE_P];
+            prevF1 = ks[SDL_SCANCODE_F1];
+            snap.pressedF2 = (ks[SDL_SCANCODE_F2] && !prevF2);
+            snap.releasedF2 = (!ks[SDL_SCANCODE_F2] && prevF2);
+            prevF2 = ks[SDL_SCANCODE_F2];
             return snap;
         }
     };

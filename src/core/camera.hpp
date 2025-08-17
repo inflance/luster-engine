@@ -44,6 +44,12 @@ namespace luster
         const glm::mat4& proj() const { return proj_; }
         ProjectionType projectionType() const { return projectionType_; }
         const glm::vec3& eye() const { return eye_; }
+        const glm::vec3& target() const { return target_; }
+        const glm::vec3& up() const { return up_; }
+
+        void setEye(const glm::vec3& e) { eye_ = e; view_ = glm::lookAt(eye_, target_, up_); }
+        void setTarget(const glm::vec3& t) { target_ = t; view_ = glm::lookAt(eye_, target_, up_); }
+        void setUp(const glm::vec3& u) { up_ = u; view_ = glm::lookAt(eye_, target_, up_); }
 
         // Input-driven updates using a snapshot (WASD+QE, Shift/Caps speed, LMB look)
         void updateFromInput(float dt, const InputSnapshot& in)
@@ -130,8 +136,8 @@ namespace luster
         float fastMultiplier_ = 3.0f;      // when Shift is held
         float slowMultiplier_ = 0.3f;      // when CapsLock is active
         float mouseSensitivity_ = 0.005f;  // radians per pixel
-        float yaw_ = 0.0f;                 // around Z
-        float pitch_ = 0.0f;               // around right axis
+        float yaw_ = 0.0f;                 // around Z (unused by controller path)
+        float pitch_ = 0.0f;               // around right axis (unused by controller path)
     };
 }
 

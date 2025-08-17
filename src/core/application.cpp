@@ -64,17 +64,14 @@ namespace luster
 			auto input = Input::captureSnapshot();
 			// ESC to quit (independent of event handling)
 			{
-				// Pause toggle on P press (debounced)
-				bool pDown = input.keyP;
-				if (pDown && !prevPToggled)
+				// Pause toggle on P press edge
+				if (input.pressedP)
 				{
 					paused = !paused;
 				}
-				prevPToggled = pDown;
 
-				// F1 toggle mouse capture/visibility (debounced)
-				bool f1Down = input.keyF1;
-				if (f1Down && !prevF1)
+				// F1 toggle mouse capture/visibility (edge)
+				if (input.pressedF1)
 				{
 					mouseCaptured = !mouseCaptured;
 					if (mouseCaptured)
@@ -86,7 +83,12 @@ namespace luster
 						SDL_ShowCursor();
 					}
 				}
-				prevF1 = f1Down;
+
+				// F2 snapshot: print simple ECS stats via renderer (if available)
+				if (input.pressedF2)
+				{
+					spdlog::info("[F2] Snapshot requested");
+				}
 
 				if (input.keyEsc)
 				{
