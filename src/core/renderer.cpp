@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "core/input.hpp"
+#include "core/window.hpp"
 
 #include "utils/log.hpp"
 
@@ -27,7 +28,7 @@ namespace luster
 	Renderer::Renderer() = default;
 	Renderer::~Renderer() { cleanup(); }
 
-	void Renderer::init(SDL_Window* window, const EngineConfig& config)
+	void Renderer::init(Window& window, const EngineConfig& config)
 	{
 		try
 		{
@@ -72,7 +73,7 @@ namespace luster
 		}
 	}
 
-	void Renderer::init(SDL_Window* window, const gfx::Device::InitParams& params)
+	void Renderer::init(Window& window, const gfx::Device::InitParams& params)
 	{
 		EngineConfig cfg{};
 		cfg.device = params;
@@ -103,13 +104,13 @@ namespace luster
 		{
 			const glm::vec3& e = camera_.eye();
 			spdlog::info("Camera pos: ({:.2f}, {:.2f}, {:.2f}) | speed:{:.1f}x sens:{:.3f}",
-			            e.x, e.y, e.z,
-			            cameraController_.fastMultiplier(), cameraController_.mouseSensitivity());
+			             e.x, e.y, e.z,
+			             cameraController_.fastMultiplier(), cameraController_.mouseSensitivity());
 			camLogLast_ = now;
 		}
 	}
 
-	bool Renderer::drawFrame(SDL_Window* window)
+	bool Renderer::drawFrame(Window& window)
 	{
 		// Update MVP (rotation over time)
 		static auto t0 = std::chrono::steady_clock::now();
@@ -132,7 +133,7 @@ namespace luster
 		}
 
 		auto result = framebuffers_->drawFrame(
-			window, *device_, *renderPass_, *context_, *swapchain_,
+			window.sdl(), *device_, *renderPass_, *context_, *swapchain_,
 			[&](VkCommandBuffer /*cb*/, uint32_t imageIndex)
 			{
 				gpuProfiler_.beginLabel(*context_, "TrianglePass");
@@ -183,16 +184,16 @@ namespace luster
 		return true;
 	}
 
-	void Renderer::recreateSwapchain(SDL_Window* window)
+	void Renderer::recreateSwapchain(Window& window)
 	{
 		int w = 0, h = 0;
-		SDL_GetWindowSize(window, &w, &h);
+		window.getSize(w, h);
 		if (w == 0 || h == 0)
 			return;
 
 		device_->waitIdle();
 		cleanupSwapchain();
-		swapchain_->recreate(*device_, window, config_.swapchain);
+		swapchain_->recreate(*device_, window.sdl(), config_.swapchain);
 		createRenderPass();
 		createFramebuffers();
 		createDescriptors();
@@ -261,16 +262,16 @@ namespace luster
 		}
 	}
 
-	void Renderer::createInstance(SDL_Window* window, const gfx::Device::InitParams& params)
+	void Renderer::createInstance(Window& window, const gfx::Device::InitParams& params)
 	{
 		device_ = std::make_unique<gfx::Device>();
-		device_->init(window, params);
+		device_->init(window.sdl(), params);
 	}
 
-	void Renderer::createSwapchainAndViews(SDL_Window* window)
+	void Renderer::createSwapchainAndViews(Window& window)
 	{
 		swapchain_ = std::make_unique<gfx::Swapchain>();
-		swapchain_->create(*device_, window, config_.swapchain);
+		swapchain_->create(*device_, window.sdl(), config_.swapchain);
 	}
 
 	void Renderer::createRenderPass()

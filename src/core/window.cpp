@@ -10,9 +10,21 @@ namespace luster
 		spdlog::error("{}: {}", what, (err && *err) ? err : "unknown");
 	}
 
-	Window::Window(const char* title, int width, int height, Uint32 flags)
+	static Uint32 to_sdl_flags(WindowFlags flags)
 	{
-		window_ = SDL_CreateWindow(title, width, height, flags);
+		Uint32 s = 0;
+		if ((flags & WindowFlags::Vulkan) == WindowFlags::Vulkan) s |= SDL_WINDOW_VULKAN;
+		if ((flags & WindowFlags::Resizable) == WindowFlags::Resizable) s |= SDL_WINDOW_RESIZABLE;
+		if ((flags & WindowFlags::HighDPI) == WindowFlags::HighDPI) s |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+		if ((flags & WindowFlags::Hidden) == WindowFlags::Hidden) s |= SDL_WINDOW_HIDDEN;
+		if ((flags & WindowFlags::Fullscreen) == WindowFlags::Fullscreen) s |= SDL_WINDOW_FULLSCREEN;
+		if ((flags & WindowFlags::Borderless) == WindowFlags::Borderless) s |= SDL_WINDOW_BORDERLESS;
+		return s;
+	}
+
+	Window::Window(const char* title, int width, int height, WindowFlags flags)
+	{
+		window_ = SDL_CreateWindow(title, width, height, to_sdl_flags(flags));
 		if (!window_)
 		{
 			log_sdl_error_local("SDL_CreateWindow failed");
@@ -75,5 +87,13 @@ namespace luster
 			throw std::runtime_error("SDL_Vulkan_CreateSurface failed");
 		}
 		return surface;
+	}
+
+	void Window::setTitle(const char* title)
+	{
+		if (window_)
+		{
+			SDL_SetWindowTitle(window_, title);
+		}
 	}
 } // namespace luster
