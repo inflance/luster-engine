@@ -52,6 +52,8 @@ namespace luster
 		// Pause toggle state (debounced on key press)
 		bool paused = false;
 		bool prevPToggled = false;
+		bool mouseCaptured = false;
+		bool prevF1 = false;
 		while (running)
 		{
 			auto now = std::chrono::steady_clock::now();
@@ -68,6 +70,22 @@ namespace luster
 					paused = !paused;
 				}
 				prevPToggled = pDown;
+
+				// F1 toggle mouse capture/visibility (debounced)
+				bool f1Down = keyState && keyState[SDL_SCANCODE_F1];
+				if (f1Down && !prevF1)
+				{
+					mouseCaptured = !mouseCaptured;
+					if (mouseCaptured)
+					{
+						SDL_HideCursor();
+					}
+					else
+					{
+						SDL_ShowCursor();
+					}
+				}
+				prevF1 = f1Down;
 
 				if (keyState && keyState[SDL_SCANCODE_ESCAPE])
 				{
@@ -98,9 +116,9 @@ namespace luster
 				const double fps = static_cast<double>(framesSinceUpdate) / (accumSeconds > 0.0 ? accumSeconds : 1.0);
 				char title[160] = {};
 				if (!paused)
-					std::snprintf(title, sizeof(title), "Luster (Vulkan) - %.1f FPS", fps);
+					std::snprintf(title, sizeof(title), "Luster (Vulkan) - %.1f FPS%s", fps, mouseCaptured ? " [MouseCaptured]" : "");
 				else
-					std::snprintf(title, sizeof(title), "Luster (Vulkan) - Paused");
+					std::snprintf(title, sizeof(title), "Luster (Vulkan) - Paused%s", mouseCaptured ? " [MouseCaptured]" : "");
 				SDL_SetWindowTitle(window_->sdl(), title);
 				accumSeconds = 0.0;
 				framesSinceUpdate = 0;

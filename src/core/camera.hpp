@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <SDL3/SDL.h>
+#include "core/input.hpp"
 
 namespace luster
 {
@@ -45,55 +45,46 @@ namespace luster
         ProjectionType projectionType() const { return projectionType_; }
         const glm::vec3& eye() const { return eye_; }
 
-        // Input-driven updates (WASD + right-mouse look)
-        void updateFromSdl(float dt)
+        // Input-driven updates using a snapshot (WASD+QE, Shift/Caps speed, LMB look)
+        void updateFromInput(float dt, const InputSnapshot& in)
         {
-            // 确保键盘状态已更新
-            SDL_PumpEvents();
-            const bool* ks = SDL_GetKeyboardState(nullptr);
-
             glm::vec3 forward = glm::normalize(target_ - eye_);
             glm::vec3 right = glm::cross(forward, up_);
             if (glm::dot(right, right) < 1e-6f)
             {
                 // 当 forward 与 up 共线时，选择一个备用的 up 以得到有效的 right
                 const glm::vec3 altUp = glm::abs(forward.z) > 0.9f ? glm::vec3(0.0f, 1.0f, 0.0f)
-                                                                  : glm::vec3(0.0f, 0.0f, 1.0f);
+                                                                   : glm::vec3(0.0f, 0.0f, 1.0f);
                 right = glm::cross(forward, altUp);
             }
             right = glm::normalize(right);
             float speed = moveSpeed_ * dt;
             // 速度修饰：Shift 加速，CapsLock 慢速
-            const SDL_Keymod mods = SDL_GetModState();
-            const bool shiftDown = ks[SDL_SCANCODE_LSHIFT] || ks[SDL_SCANCODE_RSHIFT];
-            const bool capsOn = (mods & SDL_KMOD_CAPS) != 0 || ks[SDL_SCANCODE_CAPSLOCK];
-            if (shiftDown) speed *= fastMultiplier_;
-            if (capsOn) speed *= slowMultiplier_;
-            if (ks[SDL_SCANCODE_W]) eye_ += forward * speed, target_ += forward * speed;
-            if (ks[SDL_SCANCODE_S]) eye_ -= forward * speed, target_ -= forward * speed;
-            if (ks[SDL_SCANCODE_A]) eye_ -= right * speed,   target_ -= right * speed;
-            if (ks[SDL_SCANCODE_D]) eye_ += right * speed,   target_ += right * speed;
+            if (in.keyShift) speed *= fastMultiplier_;
+            if (in.keyCaps) speed *= slowMultiplier_;
+            if (in.keyW) eye_ += forward * speed, target_ += forward * speed;
+            if (in.keyS) eye_ -= forward * speed, target_ -= forward * speed;
+            if (in.keyA) eye_ -= right * speed,   target_ -= right * speed;
+            if (in.keyD) eye_ += right * speed,   target_ += right * speed;
             // Q/E vertical movement along up axis
-            if (ks[SDL_SCANCODE_Q]) { eye_ -= up_ * speed; target_ -= up_ * speed; }
-            if (ks[SDL_SCANCODE_E]) { eye_ += up_ * speed; target_ += up_ * speed; }
+            if (in.keyQ) { eye_ -= up_ * speed; target_ -= up_ * speed; }
+            if (in.keyE) { eye_ += up_ * speed; target_ += up_ * speed; }
 
-            // 鼠标视角：按住右键，使用位置差分作为相对位移
-            float mx = 0.0f, my = 0.0f;
-            SDL_MouseButtonFlags buttons = SDL_GetMouseState(&mx, &my);
-            static float lastx = mx, lasty = my;
-            float dx = mx - lastx;
-            float dy = my - lasty;
-            lastx = mx; lasty = my;
-            if (buttons & SDL_BUTTON_RMASK)
+            // 鼠标视角：按住左键，使用位置差分作为相对位移
+            if (in.mouseButtons & SDL_BUTTON_LMASK)
             {
-                yaw_   += dx * mouseSensitivity_;
-                pitch_ += dy * mouseSensitivity_;
+                // SDL 屏幕坐标 Y 向下为正，通常需要反向以获得直觉上的“上移鼠标→抬头”
+                yaw_   += in.mouseDx * mouseSensitivity_;
+                pitch_ -= in.mouseDy * mouseSensitivity_;
+                // 限制俯仰角，避免万向节锁
                 pitch_ = glm::clamp(pitch_, glm::radians(-89.0f), glm::radians(89.0f));
-                // Rebuild forward from yaw/pitch around world up (Z)
+
+                // 基于世界 Y 轴为上（up_ = (0,1,0)）重建朝向：
+                // yaw 绕 Y 轴，pitch 绕右手坐标系的 X 轴
                 glm::vec3 dir{};
-                dir.x = cosf(pitch_) * cosf(yaw_);
-                dir.y = cosf(pitch_) * sinf(yaw_);
-                dir.z = sinf(pitch_);
+                dir.x = cosf(pitch_) * sinf(yaw_);
+                dir.y = sinf(pitch_);
+                dir.z = cosf(pitch_) * cosf(yaw_);
                 target_ = eye_ + glm::normalize(dir);
             }
             view_ = glm::lookAt(eye_, target_, up_);

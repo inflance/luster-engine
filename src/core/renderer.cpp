@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "core/input.hpp"
 
 #include "utils/log.hpp"
 
@@ -80,7 +81,8 @@ namespace luster
 		camera_.setPerspective(glm::radians(60.0f),
 		                       static_cast<float>(swapchain_->extent().width) / static_cast<float>(swapchain_->extent().
 			                       height), 0.1f, 100.0f);
-		camera_.updateFromSdl(dt);
+		const InputSnapshot input = Input::captureSnapshot();
+		camera_.updateFromInput(dt, input);
 		// 定期打印相机位置
 		const auto now = std::chrono::steady_clock::now();
 		if (camLogLast_.time_since_epoch().count() == 0) camLogLast_ = now;
@@ -88,15 +90,8 @@ namespace luster
 			std::chrono::duration_cast<std::chrono::milliseconds>(now - camLogLast_).count());
 		if (elapsedMs >= camLogIntervalMs_)
 		{
-			const bool* ks = SDL_GetKeyboardState(nullptr);
-			bool any = ks[SDL_SCANCODE_W] || ks[SDL_SCANCODE_A] || ks[SDL_SCANCODE_S] || ks[SDL_SCANCODE_D];
 			const glm::vec3& e = camera_.eye();
-			if (any)
-				spdlog::info("Camera pos: ({:.3f}, {:.3f}, {:.3f}) WASD:{}{}{}{} dt:{:.3f}", e.x, e.y, e.z,
-				             ks[SDL_SCANCODE_W] ? "W" : "-", ks[SDL_SCANCODE_A] ? "A" : "-",
-				             ks[SDL_SCANCODE_S] ? "S" : "-", ks[SDL_SCANCODE_D] ? "D" : "-", dt);
-			else
-				spdlog::info("Camera pos: ({:.3f}, {:.3f}, {:.3f})", e.x, e.y, e.z);
+			spdlog::info("Camera pos: ({:.3f}, {:.3f}, {:.3f})", e.x, e.y, e.z);
 			camLogLast_ = now;
 		}
 	}
