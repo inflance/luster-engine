@@ -47,34 +47,35 @@ namespace luster
 		void cleanup();
 
 	private:
+		// Configuration
 		EngineConfig config_{};
-		// Core render state
+
+		// Core GPU objects
 		std::unique_ptr<gfx::Device> device_;
 		std::unique_ptr<gfx::Swapchain> swapchain_;
-
 		std::unique_ptr<gfx::RenderPass> renderPass_;
 		std::unique_ptr<gfx::Pipeline> pipeline_;
 		std::unique_ptr<gfx::Framebuffers> framebuffers_;
 		std::unique_ptr<gfx::Image> depthImage_;
-
 		std::unique_ptr<gfx::CommandContext> context_;
-		gfx::GpuProfiler gpuProfiler_;
 
-		// Geometry & UBO
-		std::unique_ptr<gfx::Buffer> vertexBuffer_;
-		std::unique_ptr<gfx::Buffer> indexBuffer_;
-		std::unique_ptr<gfx::Mesh> mesh_;
-		std::unique_ptr<gfx::Buffer> uniformBuffer_;
-		std::unique_ptr<gfx::VertexLayout> vertexLayout_;
+		// Descriptors
 		std::unique_ptr<gfx::DescriptorSetLayout> dsl_;
 		std::unique_ptr<gfx::DescriptorPool> dsp_;
 		std::unique_ptr<gfx::DescriptorSet> dset_;
 
-		// FPS tracking
+		// Geometry & buffers
+		std::unique_ptr<gfx::Buffer> vertexBuffer_;
+		std::unique_ptr<gfx::Buffer> indexBuffer_;
+		std::unique_ptr<gfx::Buffer> uniformBuffer_;
+		std::unique_ptr<gfx::VertexLayout> vertexLayout_;
+		std::unique_ptr<gfx::Mesh> mesh_;
+
+		// Profiling & FPS
+		gfx::GpuProfiler gpuProfiler_;
 		std::chrono::steady_clock::time_point fpsLastUpdate_{};
 		double fpsAccumMs_ = 0.0;
 		int fpsCount_ = 0;
-		// CPU侧 FPS 统计
 		FpsCounter cpuFps_{"CPU"};
 		FpsCounter gpuFps_{"GPU"};
 
