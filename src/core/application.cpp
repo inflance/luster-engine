@@ -84,12 +84,6 @@ namespace luster
 					}
 				}
 
-				// F2 snapshot: print simple ECS stats via renderer (if available)
-				if (input.pressedF2)
-				{
-					spdlog::info("[F2] Snapshot requested");
-				}
-
 				if (input.keyEsc)
 				{
 					running = false;

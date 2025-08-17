@@ -30,8 +30,6 @@ namespace luster
         bool releasedP = false;
         bool pressedF1 = false;
         bool releasedF1 = false;
-        bool pressedF2 = false;
-        bool releasedF2 = false;
     };
 
     class Input
@@ -62,16 +60,13 @@ namespace luster
             snap.mouseDy = my - lasty;
             lastx = mx; lasty = my;
             // Edge detection for keys (simple static previous state)
-            static bool prevP = false, prevF1 = false, prevF2 = false;
+            static bool prevP = false, prevF1 = false;
             snap.pressedP = (ks[SDL_SCANCODE_P] && !prevP);
             snap.releasedP = (!ks[SDL_SCANCODE_P] && prevP);
             snap.pressedF1 = (ks[SDL_SCANCODE_F1] && !prevF1);
             snap.releasedF1 = (!ks[SDL_SCANCODE_F1] && prevF1);
             prevP = ks[SDL_SCANCODE_P];
             prevF1 = ks[SDL_SCANCODE_F1];
-            snap.pressedF2 = (ks[SDL_SCANCODE_F2] && !prevF2);
-            snap.releasedF2 = (!ks[SDL_SCANCODE_F2] && prevF2);
-            prevF2 = ks[SDL_SCANCODE_F2];
             return snap;
         }
     };
