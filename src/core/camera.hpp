@@ -63,15 +63,27 @@ namespace luster
             }
             right = glm::normalize(right);
             float speed = moveSpeed_ * dt;
+            // 速度修饰：Shift 加速，CapsLock 慢速
+            const SDL_Keymod mods = SDL_GetModState();
+            const bool shiftDown = ks[SDL_SCANCODE_LSHIFT] || ks[SDL_SCANCODE_RSHIFT];
+            const bool capsOn = (mods & SDL_KMOD_CAPS) != 0 || ks[SDL_SCANCODE_CAPSLOCK];
+            if (shiftDown) speed *= fastMultiplier_;
+            if (capsOn) speed *= slowMultiplier_;
             if (ks[SDL_SCANCODE_W]) eye_ += forward * speed, target_ += forward * speed;
             if (ks[SDL_SCANCODE_S]) eye_ -= forward * speed, target_ -= forward * speed;
             if (ks[SDL_SCANCODE_A]) eye_ -= right * speed,   target_ -= right * speed;
             if (ks[SDL_SCANCODE_D]) eye_ += right * speed,   target_ += right * speed;
+            // Q/E vertical movement along up axis
+            if (ks[SDL_SCANCODE_Q]) { eye_ -= up_ * speed; target_ -= up_ * speed; }
+            if (ks[SDL_SCANCODE_E]) { eye_ += up_ * speed; target_ += up_ * speed; }
 
+            // 鼠标视角：按住右键，使用位置差分作为相对位移
             float mx = 0.0f, my = 0.0f;
             SDL_MouseButtonFlags buttons = SDL_GetMouseState(&mx, &my);
             static float lastx = mx, lasty = my;
-            float dx = mx - lastx, dy = my - lasty; lastx = mx; lasty = my;
+            float dx = mx - lastx;
+            float dy = my - lasty;
+            lastx = mx; lasty = my;
             if (buttons & SDL_BUTTON_RMASK)
             {
                 yaw_   += dx * mouseSensitivity_;
@@ -124,6 +136,8 @@ namespace luster
 
         // input params
         float moveSpeed_ = 8.0f;           // units per second
+        float fastMultiplier_ = 3.0f;      // when Shift is held
+        float slowMultiplier_ = 0.3f;      // when CapsLock is active
         float mouseSensitivity_ = 0.005f;  // radians per pixel
         float yaw_ = 0.0f;                 // around Z
         float pitch_ = 0.0f;               // around right axis

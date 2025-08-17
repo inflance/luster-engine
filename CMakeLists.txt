@@ -30,6 +30,10 @@ endif()
 # Enable compile_commands.json for IDEs
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Enable CTest/ctest integration so tests are discoverable
+include(CTest)
+enable_testing()
+
 # Add cmake modules path
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 

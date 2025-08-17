@@ -40,10 +40,9 @@ gtest_discover_tests(luster_tests
 )
 
 # 创建测试预设
-if(NOT CMAKE_PRESET_FILE)
-    add_custom_target(run_tests
-        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-        DEPENDS luster_tests
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-endif()
+# Create a convenience target to run tests. Ensure multi-config generators pass the config name.
+add_custom_target(run_tests
+    COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIG> --output-on-failure
+    DEPENDS luster_tests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)

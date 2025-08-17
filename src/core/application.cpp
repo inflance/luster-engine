@@ -46,23 +46,64 @@ namespace luster
 		bool running = true;
 		bool framebufferResized = false;
 		auto last = std::chrono::steady_clock::now();
+		// FPS title update
+		double accumSeconds = 0.0;
+		uint32_t framesSinceUpdate = 0;
+		// Pause toggle state (debounced on key press)
+		bool paused = false;
+		bool prevPToggled = false;
 		while (running)
 		{
 			auto now = std::chrono::steady_clock::now();
 			float dt = std::chrono::duration<float>(now - last).count();
 			last = now;
 			running = window_->pollEvents(framebufferResized);
+			// ESC to quit (independent of event handling)
+			{
+				const bool* keyState = SDL_GetKeyboardState(nullptr);
+				// Pause toggle on P press (debounced)
+				bool pDown = keyState && keyState[SDL_SCANCODE_P];
+				if (pDown && !prevPToggled)
+				{
+					paused = !paused;
+				}
+				prevPToggled = pDown;
+
+				if (keyState && keyState[SDL_SCANCODE_ESCAPE])
+				{
+					running = false;
+				}
+			}
 			if (framebufferResized)
 			{
 				renderer_->recreateSwapchain(window_->sdl());
 				framebufferResized = false;
 			}
 
-			renderer_->update(dt);
-			if (!renderer_->drawFrame(window_->sdl()))
+			if (!paused)
 			{
-				// On hard failure, exit the loop
-				running = false;
+				renderer_->update(dt);
+				if (!renderer_->drawFrame(window_->sdl()))
+				{
+					// On hard failure, exit the loop
+					running = false;
+				}
+			}
+
+			// Update window title with FPS every second
+			accumSeconds += static_cast<double>(dt);
+			++framesSinceUpdate;
+			if (accumSeconds >= 1.0)
+			{
+				const double fps = static_cast<double>(framesSinceUpdate) / (accumSeconds > 0.0 ? accumSeconds : 1.0);
+				char title[160] = {};
+				if (!paused)
+					std::snprintf(title, sizeof(title), "Luster (Vulkan) - %.1f FPS", fps);
+				else
+					std::snprintf(title, sizeof(title), "Luster (Vulkan) - Paused");
+				SDL_SetWindowTitle(window_->sdl(), title);
+				accumSeconds = 0.0;
+				framesSinceUpdate = 0;
 			}
 
 			SDL_Delay(1);
