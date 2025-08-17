@@ -77,12 +77,17 @@ namespace luster
 
 	void Renderer::update(float dt)
 	{
+		const InputSnapshot input = Input::captureSnapshot();
+		update(dt, input);
+	}
+
+	void Renderer::update(float dt, const InputSnapshot& input)
+	{
 		// 更新相机（使用真实 dt）
 		camera_.setPerspective(glm::radians(60.0f),
 		                       static_cast<float>(swapchain_->extent().width) / static_cast<float>(swapchain_->extent().
 			                       height), 0.1f, 100.0f);
-		const InputSnapshot input = Input::captureSnapshot();
-		camera_.updateFromInput(dt, input);
+		cameraController_.update(camera_, dt, input);
 		// 定期打印相机位置
 		const auto now = std::chrono::steady_clock::now();
 		if (camLogLast_.time_since_epoch().count() == 0) camLogLast_ = now;

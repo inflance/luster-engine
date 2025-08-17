@@ -60,11 +60,12 @@ namespace luster
 			float dt = std::chrono::duration<float>(now - last).count();
 			last = now;
 			running = window_->pollEvents(framebufferResized);
+			// Capture input snapshot once per frame
+			auto input = Input::captureSnapshot();
 			// ESC to quit (independent of event handling)
 			{
-				const bool* keyState = SDL_GetKeyboardState(nullptr);
 				// Pause toggle on P press (debounced)
-				bool pDown = keyState && keyState[SDL_SCANCODE_P];
+				bool pDown = input.keyP;
 				if (pDown && !prevPToggled)
 				{
 					paused = !paused;
@@ -72,7 +73,7 @@ namespace luster
 				prevPToggled = pDown;
 
 				// F1 toggle mouse capture/visibility (debounced)
-				bool f1Down = keyState && keyState[SDL_SCANCODE_F1];
+				bool f1Down = input.keyF1;
 				if (f1Down && !prevF1)
 				{
 					mouseCaptured = !mouseCaptured;
@@ -87,7 +88,7 @@ namespace luster
 				}
 				prevF1 = f1Down;
 
-				if (keyState && keyState[SDL_SCANCODE_ESCAPE])
+				if (input.keyEsc)
 				{
 					running = false;
 				}
@@ -100,7 +101,7 @@ namespace luster
 
 			if (!paused)
 			{
-				renderer_->update(dt);
+				renderer_->update(dt, input);
 				if (!renderer_->drawFrame(window_->sdl()))
 				{
 					// On hard failure, exit the loop

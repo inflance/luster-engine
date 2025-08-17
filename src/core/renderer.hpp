@@ -7,6 +7,7 @@
 #include "core/utils/fps_counter.hpp"
 #include "core/config.hpp"
 #include "core/camera.hpp"
+#include "core/camera_controller.hpp"
 #include <chrono>
 #include <vector>
 
@@ -41,6 +42,7 @@ namespace luster
 		void init(SDL_Window* window, const gfx::Device::InitParams& params = gfx::Device::InitParams{});
 		bool drawFrame(SDL_Window* window);
 		void update(float dt);
+		void update(float dt, const InputSnapshot& input);
 		void recreateSwapchain(SDL_Window* window);
 		void cleanup();
 
@@ -78,6 +80,7 @@ namespace luster
 
         // Camera
         Camera camera_{};
+        CameraController cameraController_{};
         std::chrono::steady_clock::time_point camLogLast_{};
         double camLogIntervalMs_ = 500.0;
 
