@@ -133,7 +133,7 @@ namespace luster
 		}
 
 		auto result = framebuffers_->drawFrame(
-			window.sdl(), *device_, *renderPass_, *context_, *swapchain_,
+			window, *device_, *renderPass_, *context_, *swapchain_,
 			[&](VkCommandBuffer /*cb*/, uint32_t imageIndex)
 			{
 				gpuProfiler_.beginLabel(*context_, "TrianglePass");
@@ -193,7 +193,7 @@ namespace luster
 
 		device_->waitIdle();
 		cleanupSwapchain();
-		swapchain_->recreate(*device_, window.sdl(), config_.swapchain);
+		swapchain_->recreate(*device_, window, config_.swapchain);
 		createRenderPass();
 		createFramebuffers();
 		createDescriptors();
@@ -265,13 +265,13 @@ namespace luster
 	void Renderer::createInstance(Window& window, const gfx::Device::InitParams& params)
 	{
 		device_ = std::make_unique<gfx::Device>();
-		device_->init(window.sdl(), params);
+		device_->init(window, params);
 	}
 
 	void Renderer::createSwapchainAndViews(Window& window)
 	{
 		swapchain_ = std::make_unique<gfx::Swapchain>();
-		swapchain_->create(*device_, window.sdl(), config_.swapchain);
+		swapchain_->create(*device_, window, config_.swapchain);
 	}
 
 	void Renderer::createRenderPass()

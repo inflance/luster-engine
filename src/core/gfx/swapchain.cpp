@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
+#include "core/window.hpp"
 
 namespace luster::gfx
 {
@@ -48,18 +49,18 @@ namespace luster::gfx
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-	VkExtent2D Swapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& caps, SDL_Window* window)
+	VkExtent2D Swapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& caps, ::luster::Window& window)
 	{
 		if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) return caps.currentExtent;
 		int w = 0, h = 0;
-		SDL_GetWindowSize(window, &w, &h);
+		SDL_GetWindowSize(window.sdl(), &w, &h);
 		VkExtent2D e{static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
 		e.width = std::max(caps.minImageExtent.width, std::min(caps.maxImageExtent.width, e.width));
 		e.height = std::max(caps.minImageExtent.height, std::min(caps.maxImageExtent.height, e.height));
 		return e;
 	}
 
-	void Swapchain::create(const Device& device, SDL_Window* window, const SwapchainCreateInfo& info)
+	void Swapchain::create(const Device& device, ::luster::Window& window, const SwapchainCreateInfo& info)
 	{
 		auto sup = querySwapchainSupport(device.physical(), device.surface());
 		const VkSurfaceFormatKHR fmt = chooseSurfaceFormat(sup.formats, info.preferredFormat, info.preferredColorSpace);
@@ -136,7 +137,7 @@ namespace luster::gfx
 		}
 	}
 
-	void Swapchain::recreate(const Device& device, SDL_Window* window, const SwapchainCreateInfo& info)
+	void Swapchain::recreate(const Device& device, ::luster::Window& window, const SwapchainCreateInfo& info)
 	{
 		cleanup(device);
 		create(device, window, info);

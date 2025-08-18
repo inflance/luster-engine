@@ -10,6 +10,10 @@
 
 #include <vulkan/vulkan.h>
 
+// SDL3 core and Vulkan interop
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+
 #if defined(_WIN32)
 #  ifndef WIN32_LEAN_AND_MEAN
 #    define WIN32_LEAN_AND_MEAN

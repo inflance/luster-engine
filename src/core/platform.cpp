@@ -15,9 +15,6 @@ namespace luster
 
 		void init()
 		{
-#if defined(_WIN32)
-			SDL_RegisterApp("Luster", 0, GetModuleHandleW(nullptr));
-#endif
 			if (!SDL_Init(SDL_INIT_VIDEO))
 			{
 				log_sdl_error_local("SDL_Init(SDL_INIT_VIDEO) failed");

@@ -6,6 +6,7 @@
 #include "core/utils/profiler.hpp"
 #include <stdexcept>
 #include <functional>
+#include "core/window.hpp"
 
 namespace luster::gfx
 {
@@ -38,7 +39,7 @@ namespace luster::gfx
 		framebuffers_.clear();
 	}
 
-	Framebuffers::FrameResult Framebuffers::drawFrame(SDL_Window* window,
+	Framebuffers::FrameResult Framebuffers::drawFrame(::luster::Window& window,
 	                                                  const Device& device,
 	                                                  const RenderPass& rp,
 	                                                  CommandContext& ctx,

@@ -1,4 +1,5 @@
 #include "core/camera_controller.hpp"
+#include "core/core.hpp"
 
 namespace luster
 {

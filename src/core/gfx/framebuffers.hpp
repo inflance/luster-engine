@@ -4,6 +4,8 @@
 #include <vector>
 #include <functional>
 
+namespace luster { class Window; }
+
 namespace luster::gfx
 {
 	class Device;
@@ -24,7 +26,7 @@ namespace luster::gfx
 		            VkImageView depthImageView);
 
 
-		FrameResult drawFrame(SDL_Window* window,
+		FrameResult drawFrame(::luster::Window& window,
 		                      const Device& device,
 		                      const RenderPass& rp,
 		                      class CommandContext& ctx,

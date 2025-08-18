@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <array>
 #include <algorithm>
+#include "core/window.hpp"
 
 namespace luster::gfx
 {
@@ -117,7 +118,7 @@ namespace luster::gfx
 	Device::Device() = default;
 	Device::~Device() { cleanup(); }
 
-	void Device::init(SDL_Window* window, const InitParams& params)
+	void Device::init(::luster::Window& window, const InitParams& params)
 	{
 		createInstance(window, params);
 		pickDevice();
@@ -149,7 +150,7 @@ namespace luster::gfx
 		if (device_) vkDeviceWaitIdle(device_);
 	}
 
-	void Device::createInstance(SDL_Window* window, const InitParams& params)
+	void Device::createInstance(::luster::Window& window, const InitParams& params)
 	{
 		Uint32 extCount = 0;
 		const char* const* sdlExts = SDL_Vulkan_GetInstanceExtensions(&extCount);
@@ -211,7 +212,7 @@ namespace luster::gfx
 			}
 		}
 
-		if (!SDL_Vulkan_CreateSurface(window, instance_, nullptr, &surface_) || surface_ == VK_NULL_HANDLE)
+		if (!SDL_Vulkan_CreateSurface(window.sdl(), instance_, nullptr, &surface_) || surface_ == VK_NULL_HANDLE)
 		{
 			throw std::runtime_error("SDL_Vulkan_CreateSurface failed");
 		}

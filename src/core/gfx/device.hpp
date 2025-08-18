@@ -4,6 +4,8 @@
 #include <vector>
 #include <functional>
 
+namespace luster { class Window; }
+
 namespace luster::gfx
 {
 	class Device
@@ -20,7 +22,7 @@ namespace luster::gfx
 		Device();
 		~Device();
 
-		void init(SDL_Window* window, const InitParams& params = InitParams{});
+		void init(::luster::Window& window, const InitParams& params = InitParams{});
 		void cleanup();
 		void waitIdle() const;
 		bool isInitialized() const { return device_ != VK_NULL_HANDLE; }
@@ -42,7 +44,7 @@ namespace luster::gfx
         void submitImmediate(const std::function<void(VkCommandBuffer)>& recordCommands) const;
 
 	private:
-		void createInstance(SDL_Window* window, const InitParams& params);
+		void createInstance(::luster::Window& window, const InitParams& params);
 		void pickDevice();
 		void createDevice(const InitParams& params);
 		void destroyDebugMessenger();

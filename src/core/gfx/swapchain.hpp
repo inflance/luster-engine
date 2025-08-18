@@ -2,6 +2,8 @@
 
 #include "core/core.hpp"
 
+namespace luster { class Window; }
+
 namespace luster::gfx
 {
 	class Device;
@@ -20,8 +22,8 @@ namespace luster::gfx
 		Swapchain() = default;
 		~Swapchain() = default;
 
-		void create(const Device& device, SDL_Window* window, const SwapchainCreateInfo& info = {});
-		void recreate(const Device& device, SDL_Window* window, const SwapchainCreateInfo& info = {});
+		void create(const Device& device, ::luster::Window& window, const SwapchainCreateInfo& info = {});
+		void recreate(const Device& device, ::luster::Window& window, const SwapchainCreateInfo& info = {});
 		void cleanup(const Device& device);
 
 		// Accessors
@@ -35,7 +37,7 @@ namespace luster::gfx
 		                                              VkFormat preferredFormat,
 		                                              VkColorSpaceKHR preferredColorSpace);
 		static VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& modes);
-		static VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& caps, SDL_Window* window);
+		static VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& caps, ::luster::Window& window);
 
 		VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
 		VkFormat swapFormat_ = VK_FORMAT_B8G8R8A8_UNORM;
